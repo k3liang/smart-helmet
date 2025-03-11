@@ -100,6 +100,7 @@ typedef struct shared_variable {
     int safety;
     unsigned int lastDanger;
     PyObject* pyObjects[4];
+    float eye_ratio;
 } SharedVariable;
 
 // C. Functions
