@@ -58,6 +58,7 @@ int init_boundaries(SharedVariable* sv) {
 
 int init_python(SharedVariable* sv) {
     Py_Initialize();
+    PyEval_InitThreads();
 
     PyRun_SimpleString("import sys; sys.path.append('.')");
 
@@ -78,7 +79,18 @@ int init_python(SharedVariable* sv) {
     pCleanup = PyObject_GetAttrString(pModule, "cleanup");
 
     if (pInit && PyCallable_Check(pInit)) {
-        PyObject_CallObject(pInit, NULL);
+        PyGILState_STATE gstate = PyGILState_Ensure(); // Acquire GIL explicitly
+        
+        PyObject *result = PyObject_CallObject(pInit, NULL);
+        if (result == NULL) {
+            PyErr_Print();
+            printf("Python initialization failed.\n");
+            return 1;
+        } else {
+            Py_DECREF(result);
+        }
+
+        PyGILState_Release(gstate); // Release GIL explicitly
     }
 
     sv->pyObjects[0] = pModule;
