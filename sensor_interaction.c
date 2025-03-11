@@ -85,6 +85,7 @@ int init_python(SharedVariable* sv) {
     sv->pyObjects[1] = pInit;
     sv->pyObjects[2] = pDetect;
     sv->pyObjects[3] = pCleanup;
+    printf("Python initialized\n");
 
     return 0;
 }
@@ -297,6 +298,7 @@ void body_heart(SharedVariable* sv) {
 
 }
 void body_camera(SharedVariable* sv) {
+    printf("Detecting drowsiness...\n");
     double eye_ratio = -1.0;
     if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
         PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
