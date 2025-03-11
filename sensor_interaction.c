@@ -79,7 +79,7 @@ int init_python(SharedVariable* sv) {
     pCleanup = PyObject_GetAttrString(pModule, "cleanup");
 
     if (pInit && PyCallable_Check(pInit)) {
-        PyGILState_STATE gstate = PyGILState_Ensure(); // Acquire GIL explicitly
+        PyGILState_STATE gstate = PyGILState_Ensure();
         
         PyObject *result = PyObject_CallObject(pInit, NULL);
         if (result == NULL) {
@@ -90,7 +90,7 @@ int init_python(SharedVariable* sv) {
             Py_DECREF(result);
         }
 
-        PyGILState_Release(gstate); // Release GIL explicitly
+        PyGILState_Release(gstate);
     }
 
     sv->pyObjects[0] = pModule;
@@ -313,11 +313,14 @@ void body_camera(SharedVariable* sv) {
     printf("Detecting drowsiness...\n");
     double eye_ratio = -1.0;
     if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+
         PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
 
         if (result == NULL) {
             PyErr_Print();
             printf("Error calling Python function.\n");
+            PyGILState_Release(gstate);
             return;
         }
 
@@ -329,6 +332,7 @@ void body_camera(SharedVariable* sv) {
         }
 
         Py_DECREF(result);
+        PyGILState_Release(gstate);
     }
     sv->eye_ratio = eye_ratio;
 }
