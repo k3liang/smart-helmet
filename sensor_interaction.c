@@ -56,7 +56,7 @@ int init_boundaries(SharedVariable* sv) {
     return 0;
 }
 
-int init_python(PyObject* pyObjects[4]) {
+int init_python(SharedVariable* sv) {
     Py_Initialize();
 
     PyRun_SimpleString("import sys; sys.path.append('.')");
