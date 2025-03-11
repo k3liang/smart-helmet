@@ -34,6 +34,8 @@
 #define FACE 4
 #define NUMINPUTS 5
 
+#define NUMSENSORS 10
+
 #define SENSORFILE "sensor_values.txt"
 
 #define SAFE 1
@@ -97,11 +99,17 @@ typedef struct shared_variable {
     int fd;
     PyObject* pyObjects[4];
     float eye_ratio;
+
+    unsigned int deadlines[NUMSENSORS];
+    unsigned int execTimes[NUMSENSORS];
+    unsigned int nextArrive[NUMSENSORS];
+    int alive[NUMSENSORS];
 } SharedVariable;
 
 int init_boundaries(SharedVariable* sv);
 void init_shared_variable(SharedVariable* sv);
 void init_sensors(SharedVariable* sv);
+
 void body_button(SharedVariable* sv);     
 void body_encoder(SharedVariable* sv);    
 void body_twocolor(SharedVariable* sv);   

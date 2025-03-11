@@ -3,6 +3,7 @@
 #include <softPwm.h>
 #include <signal.h>
 #include "sensor_interaction.h"
+#include "scheduler.h"
 
 volatile sig_atomic_t exit_flag = 0;
 void signal_handler(int signum) {
@@ -32,8 +33,11 @@ int main(int argc, char* argv[]) {
 		printf("Failed to initialize Python.\n");
 	}
 
+    learn_exectimes(&v);
+
 	// Main program loop
 	while (!exit_flag && v.bProgramExit != 1) {
+        /*
        body_button(&v);
        body_encoder(&v);
        body_twocolor(&v);
@@ -44,7 +48,10 @@ int main(int argc, char* argv[]) {
        body_accel(&v);
        body_camera(&v);
        body_lcd(&v);
-       delay(2000);
+       delay(2000);*/
+        run_task(&v);
+        delay(10);
+
 	}
     printf("saving all manual calibrations");
     saveCalib(&v);
