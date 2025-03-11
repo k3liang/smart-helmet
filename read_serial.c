@@ -124,3 +124,41 @@ char* readSerialLine(const int fd, char* line) {
     }
     return line;  // Return the line that was read
 }
+
+char* readSerialLine2(const int fd, char* line, unsigned int timeout) {
+    //static char line[MAX_LINE_LENGTH];  // Static buffer to hold the line
+    int index = 0;
+    int ch;
+    unsigned int startTime = millis();
+
+    // Clear the buffer before reading the new line
+    memset(line, 0, MAX_LINE_LENGTH);
+
+    // Read characters until a newline is encountered or we reach the timeout
+    while (millis() - startTime <= timeout) {
+        ch = serialGetchar(fd);  // Read next character from the serial port
+
+        if (ch == -1) {
+            // Handle error (e.g., no data available)
+            continue;
+        }
+
+        if (ch == '\n') {
+            // End of line, terminate the string
+            if (index > 0 && line[index-1] == 13) {
+                line[index-1] = '\0';
+                return line;
+            }
+            line[index] = '\0';
+            //line[index]='\n';
+            //line[index+1] = '\0';
+            return line;
+        }
+
+        // Store the character in the buffer and move to the next index
+        line[index++] = (char)ch;
+    }
+    memset(line, 0, MAX_LINE_LENGTH);
+    strcpy(line, "-1");
+    return NULL;  // Return error
+}

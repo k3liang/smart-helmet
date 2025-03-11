@@ -29,21 +29,37 @@
 #define DETECT_MOTION 1
 #define NO_MOTION 0
 
-#define STABLE 0
-#define LOWBOUND 1
-#define HIGHBOUND 2
-#define NUMVALUES 3
+#define FALSE 0
+#define TRUE 1
+
+#define LOWBOUND 0
+#define HIGHBOUND 1
+#define NUMVALUES 2
 
 #define TEMP 0
 #define HUMID 1
 #define AIR 2
 #define ACCEL 3
-#define NUMINPUTS 4
+#define FACE 4
+#define NUMINPUTS 5
 
 #define SENSORFILE "sensor_values.txt"
 
 #define SAFE 1
 #define DANGER 0
+#define CRITICAL -1
+
+#define TUNINGDEBOUNCE 5000
+#define DANGERCOOLDOWN_MAX 10000
+#define DANGERTOCRITICAL 10000
+
+#define STEPFACTOR 100
+
+#define FACENUM 5
+
+#define ACCELPERIOD 30000
+
+#define CHANGETHRES 0.08
 
 // A. Pin number definitions (DO NOT MODIFY)
 // We use 8 sensors.
@@ -81,14 +97,27 @@ typedef struct shared_variable {
     int lastClk; // to figure out rotation
     unsigned int lastBeep; // timing of the buzzer
     int lastPress; // prevent button hold-presses from glitching
-    double bounds[NUMINPUTS][NUMVALUES];
+    double info[NUMINPUTS][NUMVALUES];
+    double stable[NUMINPUTS]; // "stable" level; we assume an average of bounds
+    double relDanger[NUMINPUTS]; // relative danger
     double temp;
     double humid;
     double air;
     double accel;
+    double face;
+    double faces[FACENUM];
+    int faceIndex;
+    double faceSum;
+    unsigned int lastAccel;
+    double accelSum;
+    char prevlcdMsg[MAX_LINE_LENGTH];
     char lcdMsg[MAX_LINE_LENGTH];
     int safety;
+    unsigned int dangerCooldown;
     unsigned int lastDanger;
+    int tuning;
+    unsigned int lastTune;
+    int tuningIndex;
     int fd;
     PyObject* pyObjects[4];
     float eye_ratio;
@@ -114,6 +143,8 @@ void body_air(SharedVariable* sv);
 void body_accel(SharedVariable* sv);
 void body_lcd(SharedVariable* sv);
 void body_camera(SharedVariable* sv);
+
+void saveCalib(SharedVariable* sv);
 
 int init_python(SharedVariable* sv);
 void clean_python(SharedVariable* sv);

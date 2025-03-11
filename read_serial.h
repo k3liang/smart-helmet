@@ -6,10 +6,12 @@
 #include <errno.h>
 
 #include <wiringSerial.h>
+#include <wiringPi.h> 
 
 #define MAX_LINE_LENGTH 256
 
 char* readSerialData(const int fd, char* buffer);
 char* readSerialLine(const int fd, char* line);
+char* readSerialLine2(const int fd, char* line, unsigned int timeout);
 
 #endif

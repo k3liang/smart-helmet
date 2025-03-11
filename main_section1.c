@@ -6,38 +6,10 @@
 // For more details, please see the instructions on the class website.
 
 #include <stdio.h>
-#include <pthread.h>
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <signal.h>
 #include "sensor_interaction.h"
-
-// Thread declaration macros
-#define thread_decl(NAME) \
-void* thread_##NAME(void* param) { \
-	SharedVariable* pV = (SharedVariable*) param; \
-	body_##NAME(pV); \
-	return NULL; }
-
-// Declare threads for each sensor/actuator function
-thread_decl(button)
-//thread_decl(motion)
-//thread_decl(sound)
-thread_decl(encoder)
-thread_decl(twocolor)
-//thread_decl(rgbcolor)
-thread_decl(aled)
-thread_decl(buzzer)
-
-thread_decl(temphumid)
-thread_decl(air)
-thread_decl(accel)
-thread_decl(lcd)
-thread_decl(camera)
-
-// Thread creation and joining macros
-#define thread_create(NAME) pthread_create(&t_##NAME, NULL, thread_##NAME, &v);
-#define thread_join(NAME) pthread_join(t_##NAME, NULL);
 
 volatile sig_atomic_t exit_flag = 0;
 void signal_handler(int signum) {
@@ -67,66 +39,27 @@ int main(int argc, char* argv[]) {
 		printf("Failed to initialize Python.\n");
 	}
 
-	// Thread identifiers
-	pthread_t t_button,
-			  //t_motion,
-			  //t_sound,
-			  t_encoder,
-			  t_twocolor,
-			  //t_rgbcolor,
-			  t_aled,
-			  t_buzzer,
-              t_temphumid,
-              t_air,
-              t_accel,
-              t_lcd,
-			  t_camera;
-
 	// Main program loop
 	while (!exit_flag && v.bProgramExit != 1) {
         /*
-		// Create sensing threads
-		thread_create(button);
-		//thread_create(motion);
-		//thread_create(sound);
-		thread_create(encoder);
-		thread_create(twocolor);
-		//thread_create(rgbcolor);
-		thread_create(aled);
-		thread_create(buzzer);
-
-        thread_create(temphumid);
-        thread_create(air);
-        thread_create(accel);
-        thread_create(lcd);
-		thread_create(camera);
-
-		// Wait for all threads to finish
-		thread_join(button);
-		//thread_join(motion);
-		//thread_join(sound);
-		thread_join(encoder);
-		thread_join(twocolor);
-		//thread_join(rgbcolor);
-		thread_join(aled);
-		thread_join(buzzer);
-
-        thread_join(temphumid);
-        thread_join(air);
-        thread_join(accel);
-        thread_join(lcd);
-		thread_join(camera);
-
 		// Add a slight delay between iterations
 		delay(10);
         */
-       /*body_temphumid(&v);
+       body_button(&v);
+       body_encoder(&v);
+       body_twocolor(&v);
+       body_aled(&v);
+       body_buzzer(&v);
+       body_temphumid(&v);
        body_air(&v);
        body_accel(&v);
-       body_lcd(&v);
-       delay(2000);*/
        body_camera(&v);
+       body_lcd(&v);
+       delay(2000);
 	}
+    printf("saving all manual calibrations");
+    saveCalib(&v);
+
 	printf("trying to clean up python...\n");
 	clean_python(&v);
 
