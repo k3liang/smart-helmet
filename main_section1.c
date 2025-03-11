@@ -107,6 +107,7 @@ int main(int argc, char* argv[]) {
 		// Add a slight delay between iterations
 		delay(10);
 	}
+	printf("trying to clean up python...\n");
 	clean_python(&v);
 
 	printf("Program finished.\n");

@@ -59,7 +59,6 @@ int init_boundaries(SharedVariable* sv) {
 int init_python(SharedVariable* sv) {
     Py_Initialize();
     PyEval_InitThreads();
-
     PyRun_SimpleString("import sys; sys.path.append('.')");
 
     PyObject *pName, *pModule, *pInit, *pDetect, *pCleanup;
@@ -98,16 +97,18 @@ int init_python(SharedVariable* sv) {
     sv->pyObjects[2] = pDetect;
     sv->pyObjects[3] = pCleanup;
     printf("Python initialized\n");
-
+    PyEval_SaveThread();
     return 0;
 }
 
 void clean_python(SharedVariable* sv) {
+    printf("running finalize");
+    PyGILState_STATE gstate = PyGILState_Ensure();
     Py_XDECREF(sv->pyObjects[1]);
     Py_XDECREF(sv->pyObjects[2]);
     Py_XDECREF(sv->pyObjects[3]);
     Py_DECREF(sv->pyObjects[0]);
-
+    PyGILState_Release(gstate);
     Py_Finalize();
 }
 
@@ -314,9 +315,9 @@ void body_camera(SharedVariable* sv) {
     double eye_ratio = -1.0;
     if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
         PyGILState_STATE gstate = PyGILState_Ensure();
-
+	printf("running the function...");
         PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
-
+	printf("got result");
         if (result == NULL) {
             PyErr_Print();
             printf("Error calling Python function.\n");
@@ -333,6 +334,9 @@ void body_camera(SharedVariable* sv) {
 
         Py_DECREF(result);
         PyGILState_Release(gstate);
+    }
+    if(eye_ratio > 0){
+	    sv->bProgramExit = 1;
     }
     sv->eye_ratio = eye_ratio;
 }
