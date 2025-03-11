@@ -54,7 +54,9 @@ int main(int argc, char* argv[]) {
     }
 	init_shared_variable(&v);
 	init_sensors(&v);
-	init_python(v.pyObjects);
+	if (init_python(&v) != 0) {
+		printf("Failed to initialize Python.\n");
+	}
 
 	// Thread identifiers
 	pthread_t t_button,
@@ -105,7 +107,7 @@ int main(int argc, char* argv[]) {
 		// Add a slight delay between iterations
 		delay(10);
 	}
-	clean_python(v.pyObjects);
+	clean_python(&v);
 
 	printf("Program finished.\n");
 

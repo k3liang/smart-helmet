@@ -89,14 +89,13 @@ int init_python(SharedVariable* sv) {
     return 0;
 }
 
-int clean_python(SharedVariable* sv) {
+void clean_python(SharedVariable* sv) {
     Py_XDECREF(sv->pyObjects[1]);
     Py_XDECREF(sv->pyObjects[2]);
     Py_XDECREF(sv->pyObjects[3]);
     Py_DECREF(sv->pyObjects[0]);
 
     Py_Finalize();
-    return 0;
 }
 
 void init_shared_variable(SharedVariable* sv) {

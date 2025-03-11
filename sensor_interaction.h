@@ -123,7 +123,7 @@ void body_air(SharedVariable* sv);
 void body_heart(SharedVariable* sv);
 void body_camera(SharedVariable* sv);
 
-void init_python(SharedVariable* sv);
+int init_python(SharedVariable* sv);
 void clean_python(SharedVariable* sv);
 
 #endif
