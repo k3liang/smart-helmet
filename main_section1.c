@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
 		// Add a slight delay between iterations
 		delay(10);
 	}
-	python_cleanup(v.pyObjects);
+	clean_python(v.pyObjects);
 
 	printf("Program finished.\n");
 
