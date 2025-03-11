@@ -30,7 +30,8 @@ thread_decl(buzzer)
 
 thread_decl(temphumid)
 thread_decl(air)
-thread_decl(heart)
+thread_decl(accel)
+thread_decl(lcd)
 
 // Thread creation and joining macros
 #define thread_create(NAME) pthread_create(&t_##NAME, NULL, thread_##NAME, &v);
@@ -65,10 +66,12 @@ int main(int argc, char* argv[]) {
 			  t_buzzer,
               t_temphumid,
               t_air,
-              t_heart;
+              t_accel,
+              t_lcd;
 
 	// Main program loop
 	while (v.bProgramExit != 1) {
+        /*
 		// Create sensing threads
 		thread_create(button);
 		//thread_create(motion);
@@ -81,7 +84,7 @@ int main(int argc, char* argv[]) {
 
         thread_create(temphumid);
         thread_create(air);
-        thread_create(heart);
+        thread_create(accel);
 
 		// Wait for all threads to finish
 		thread_join(button);
@@ -95,10 +98,16 @@ int main(int argc, char* argv[]) {
 
         thread_join(temphumid);
         thread_join(air);
-        thread_join(heart);
+        thread_join(accel);
 
 		// Add a slight delay between iterations
 		delay(10);
+        */
+       body_temphumid(&v);
+       body_air(&v);
+       body_accel(&v);
+       body_lcd(&v);
+       delay(2000);
 	}
 
 	printf("Program finished.\n");

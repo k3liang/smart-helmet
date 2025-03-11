@@ -3,6 +3,7 @@
 #define _ASSIGNMENT_BODY_
 
 #include <stdint.h>
+#include "read_serial.h"
 
 // Macros
 #define TURN_ON(pin) digitalWrite(pin, 1)
@@ -35,7 +36,7 @@
 #define TEMP 0
 #define HUMID 1
 #define AIR 2
-#define HEART 3
+#define ACCEL 3
 #define NUMINPUTS 4
 
 #define SENSORFILE "sensor_values.txt"
@@ -56,27 +57,15 @@
 #define PIN_ROTARY_CLK 5
 #define PIN_ROTARY_DT 6
 
-// 4. Microphone sound sensor
-//#define PIN_SOUND 7
-
 // 5. DIP two-color LED (Dual In-line Package)
 #define PIN_DIP_RED 8
 #define PIN_DIP_GRN 9
-
-// 6. SMD RGB LED (Surface Mount Device)
-// #define PIN_SMD_RED 27
-//#define PIN_SMD_GRN 28
-// #define PIN_SMD_BLU 29
 
 // 7. Auto-flash LED
 #define PIN_ALED 12
 
 // 8. Passive Buzzer
 #define PIN_BUZZER 13
-
-#define PIN_TEMPHUMID 4
-#define PIN_AIR 7
-#define PIN_HEART 27
 
 // B. Shared structure
 // All thread functions get a shared variable of the structure
@@ -95,9 +84,11 @@ typedef struct shared_variable {
     double temp;
     double humid;
     double air;
-    double heart;
+    double accel;
+    char lcdMsg[MAX_LINE_LENGTH];
     int safety;
     unsigned int lastDanger;
+    int fd;
 } SharedVariable;
 
 // C. Functions
@@ -117,6 +108,7 @@ void body_buzzer(SharedVariable* sv);     // Buzzer
 
 void body_temphumid(SharedVariable* sv); 
 void body_air(SharedVariable* sv);
-void body_heart(SharedVariable* sv);
+void body_accel(SharedVariable* sv);
+void body_lcd(SharedVariable* sv);
 
 #endif
