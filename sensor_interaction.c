@@ -325,6 +325,7 @@ void body_camera(SharedVariable* sv) {
             PyErr_Print();
             printf("Error calling Python function.\n");
             PyGILState_Release(gstate);
+            sv->bProgramExit = 1;
             return;
         }
 
