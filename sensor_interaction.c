@@ -135,10 +135,7 @@ void clean_python(SharedVariable* sv) {
 
 void init_shared_variable(SharedVariable* sv) {
     sv->bProgramExit = 0;
-    sv->state = RUNNING;
     sv->rotation = CLOCKWISE;
-    sv->sound = NO_SOUND;
-    sv->motion = NO_MOTION;
     sv->lastClk = LOW;
     sv->lastBeep = 0;
     sv->lastPress = HIGH;
@@ -174,7 +171,6 @@ void init_shared_variable(SharedVariable* sv) {
 }
 
 void ledInit(void) {
-    //initialize SMD and DIP
     softPwmCreate(PIN_SMD_RED, 0, 0xff);
     softPwmCreate(PIN_SMD_GRN, 0, 0xff);
     softPwmCreate(PIN_SMD_BLU, 0, 0xff);
@@ -201,7 +197,7 @@ void init_sensors(SharedVariable* sv) {
     // initialize LED pulses
     ledInit();
 
-    // initialize buzzer pulses
+    // initialize buzzer pulse
     softPwmCreate(PIN_BUZZER, 0, 100);
 
     softPwmWrite(PIN_SMD_BLU, 0);
@@ -238,9 +234,7 @@ void makelcdMsg(SharedVariable* sv, char* beginning, char* middle, double num) {
     strcat(sv->lcdMsg, str);
 }
 
-// 1. Button
 void body_button(SharedVariable* sv) {
-    // switch running state if button is pressed
     if (READ(PIN_BUTTON) == LOW) {
         // the point of lastPress is to prevent more than one switch
         // when the user holds down the button
@@ -277,7 +271,6 @@ void body_button(SharedVariable* sv) {
     }
 }
 
-// 4. Rotary Encoder
 void body_encoder(SharedVariable* sv) {
     if (sv->tuning == FALSE) {
         return;
@@ -326,7 +319,7 @@ int clamp(int num, int min, int max) {
     return num;
 }
 
-// 5. DIP two-color LED
+// SMD treated as a two-color
 void body_twocolor(SharedVariable* sv) {
     int i;
     double maxDanger = sv->relDanger[0];
@@ -341,7 +334,6 @@ void body_twocolor(SharedVariable* sv) {
     softPwmWrite(PIN_SMD_RED, clamp(MAXCOLOR - greenLit, 0, MAXCOLOR));
 }
 
-// 7. Auto-flash LED
 void body_aled(SharedVariable* sv) {
     if (sv->dangerCooldown > 0) {
         TURN_OFF(PIN_ALED);
@@ -353,7 +345,6 @@ void body_aled(SharedVariable* sv) {
     }
 }
 
-// 8. Buzzer
 void body_buzzer(SharedVariable* sv) {
     if (sv->dangerCooldown > 0) {
         softPwmWrite(PIN_BUZZER, 0);
@@ -387,6 +378,11 @@ void body_temphumid(SharedVariable* sv) {
         return;
     }
     humid = strtod(line, NULL);
+    if (humid < 0) {
+        printf("temp+humidity could not read\n");
+        return;
+    }
+
     if (readSerialLine2(sv->fd, line, 500) == NULL) {
         printf("temp+humidity missed a byte\n");
         return;
@@ -421,6 +417,7 @@ void body_temphumid(SharedVariable* sv) {
         makelcdMsg(sv, "", names[HUMID], humid);
     }
 } 
+
 void body_air(SharedVariable* sv) {
     serialFlush(sv->fd);
     serialPrintf(sv->fd, "Q");
@@ -451,6 +448,7 @@ void body_air(SharedVariable* sv) {
         }
     }
 }
+
 void body_accel(SharedVariable* sv) {
     serialFlush(sv->fd);
     serialPrintf(sv->fd, "A");

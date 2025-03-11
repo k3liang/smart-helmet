@@ -1,10 +1,3 @@
-// Important! DO NOT MODIFY this file.
-// You will not submit this file.
-// This file is provided for your understanding of the program procedure.
-
-// Skeleton code of CSE237A, Sensor interaction
-// For more details, please see the instructions on the class website.
-
 #include <stdio.h>
 #include <wiringPi.h>
 #include <softPwm.h>
@@ -41,10 +34,6 @@ int main(int argc, char* argv[]) {
 
 	// Main program loop
 	while (!exit_flag && v.bProgramExit != 1) {
-        /*
-		// Add a slight delay between iterations
-		delay(10);
-        */
        body_button(&v);
        body_encoder(&v);
        body_twocolor(&v);
