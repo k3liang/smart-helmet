@@ -298,7 +298,24 @@ void body_heart(SharedVariable* sv) {
 
 }
 void body_camera(SharedVariable* sv) {
+    double eye_ratio = -1.0;
     if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
-        PyObject_CallObject(sv->pyObjects[2], NULL);
+        PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
+
+        if (result == NULL) {
+            PyErr_Print();
+            printf("Error calling Python function.\n");
+            return;
+        }
+
+        if (PyFloat_Check(result)) {
+            eye_ratio = PyFloat_AsDouble(result);
+            printf("Eye Ratio: %f\n", eye_ratio);
+        } else {
+            printf("Returned value is not a float.\n");
+        }
+
+        Py_DECREF(result);
     }
+    sv->eye_ratio = eye_ratio;
 }

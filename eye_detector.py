@@ -40,12 +40,9 @@ def detect_drowsiness():
         eye_ratio = (Detect_Eye(leftEye) + Detect_Eye(rightEye)) / 2
         eye_ratio = round(eye_ratio, 2)
 
-        print(f"Eye Aspect Ratio: {eye_ratio}")
+        return eye_ratio
 
-        if eye_ratio < 0.25:
-            print("DROWSY!")
-
-# Cleanup (Call once when you're done)
+# Cleanup
 def cleanup():
     cap.release()
     print("Camera released.")
