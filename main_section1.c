@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <wiringPi.h>
 #include <softPwm.h>
+#include <signal.h>
 #include "sensor_interaction.h"
 
 // Thread declaration macros
@@ -38,7 +39,14 @@ thread_decl(camera)
 #define thread_create(NAME) pthread_create(&t_##NAME, NULL, thread_##NAME, &v);
 #define thread_join(NAME) pthread_join(t_##NAME, NULL);
 
+volatile sig_atomic_t exit_flag = 0;
+void signal_handler(int signum) {
+	exit_flag = 1;
+}
+
 int main(int argc, char* argv[]) {
+    signal(SIGINT, signal_handler);
+
 	// Initialize shared variable
 	SharedVariable v;
 
@@ -75,7 +83,7 @@ int main(int argc, char* argv[]) {
 			  t_camera;
 
 	// Main program loop
-	while (v.bProgramExit != 1) {
+	while (!exit_flag && v.bProgramExit != 1) {
         /*
 		// Create sensing threads
 		thread_create(button);
