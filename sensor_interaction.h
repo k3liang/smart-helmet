@@ -3,6 +3,7 @@
 #define _ASSIGNMENT_BODY_
 
 #include <stdint.h>
+#include <Python.h>
 
 // Macros
 #define TURN_ON(pin) digitalWrite(pin, 1)
@@ -98,6 +99,7 @@ typedef struct shared_variable {
     double heart;
     int safety;
     unsigned int lastDanger;
+    PyObject* pyObjects[4];
 } SharedVariable;
 
 // C. Functions
@@ -118,5 +120,6 @@ void body_buzzer(SharedVariable* sv);     // Buzzer
 void body_temphumid(SharedVariable* sv); 
 void body_air(SharedVariable* sv);
 void body_heart(SharedVariable* sv);
+void body_camera(SharedVariable* sv);
 
 #endif

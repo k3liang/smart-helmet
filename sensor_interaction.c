@@ -56,6 +56,49 @@ int init_boundaries(SharedVariable* sv) {
     return 0;
 }
 
+int init_python(PyObject* pyObjects[4]) {
+    Py_Initialize();
+
+    PyRun_SimpleString("import sys; sys.path.append('.')");
+
+    PyObject *pName, *pModule, *pInit, *pDetect, *pCleanup;
+
+    pName = PyUnicode_FromString("eye_detector");
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    if (!pModule) {
+        PyErr_Print();
+        printf("Failed to load Python module\n");
+        return 1;
+    }
+
+    pInit = PyObject_GetAttrString(pModule, "initialize");
+    pDetect = PyObject_GetAttrString(pModule, "detect_drowsiness");
+    pCleanup = PyObject_GetAttrString(pModule, "cleanup");
+
+    if (pInit && PyCallable_Check(pInit)) {
+        PyObject_CallObject(pInit, NULL);
+    }
+
+    sv->pyObjects[0] = pModule;
+    sv->pyObjects[1] = pInit;
+    sv->pyObjects[2] = pDetect;
+    sv->pyObjects[3] = pCleanup;
+
+    return 0;
+}
+
+int clean_python(SharedVariable* sv) {
+    Py_XDECREF(sv->pyObjects[1]);
+    Py_XDECREF(sv->pyObjects[2]);
+    Py_XDECREF(sv->pyObjects[3]);
+    Py_DECREF(sv->pyObjects[0]);
+
+    Py_Finalize();
+    return 0;
+}
+
 void init_shared_variable(SharedVariable* sv) {
     sv->bProgramExit = 0;
     sv->state = RUNNING;
@@ -253,4 +296,9 @@ void body_air(SharedVariable* sv) {
 }
 void body_heart(SharedVariable* sv) {
 
+}
+void body_camera(SharedVariable* sv) {
+    if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
+        PyObject_CallObject(sv->pyObjects[2], NULL);
+    }
 }
