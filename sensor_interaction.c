@@ -1,9 +1,12 @@
 #include "sensor_interaction.h"
+#include "read_serial.h"
 #include <stdio.h>
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <wiringSerial.h>
 
 int readLine(SharedVariable* sv, int index, FILE* file) {
     char line[128];
@@ -124,7 +127,8 @@ void init_shared_variable(SharedVariable* sv) {
     sv->temp = sv->bounds[TEMP][STABLE];
     sv->humid = sv->bounds[HUMID][STABLE];
     sv->air = sv->bounds[AIR][STABLE];
-    sv->heart = sv->bounds[HEART][STABLE];
+    sv->accel = sv->bounds[ACCEL][STABLE];
+    strncpy(sv->lcdMsg, "Print to DP", 12);
     sv->safety = SAFE;
     sv->lastDanger = 0;
 }
@@ -141,16 +145,13 @@ void ledInit(void) {
 void init_sensors(SharedVariable* sv) {
     // initial input output modes of the pins
     pinMode(PIN_BUTTON, INPUT);
-    //pinMode(PIN_MOTION, INPUT);
+
     pinMode(PIN_ROTARY_CLK, INPUT);
     pinMode(PIN_ROTARY_DT, INPUT);
-    //pinMode(PIN_SOUND, INPUT);
 
     pinMode(PIN_DIP_RED, OUTPUT);
     pinMode(PIN_DIP_GRN, OUTPUT);
-    //pinMode(PIN_SMD_RED, OUTPUT);
-    //pinMode(PIN_SMD_GRN, OUTPUT);
-    //pinMode(PIN_SMD_BLU, OUTPUT);
+
     pinMode(PIN_ALED, OUTPUT);
     pinMode(PIN_BUZZER, OUTPUT);
 
@@ -160,9 +161,27 @@ void init_sensors(SharedVariable* sv) {
     // initialize buzzer pulses
     softPwmCreate(PIN_BUZZER, 0, 100);
 
-    pinMode(PIN_TEMPHUMID, INPUT);
-    pinMode(PIN_AIR, INPUT);
-    pinMode(PIN_HEART, INPUT);
+    int fd;
+    if ((fd = serialOpen ("/dev/ttyACM0", 115200)) < 0)
+    {
+        printf("no usb connection to arduino\n");
+        sv->bProgramExit = 1;
+        return;
+    }
+    sv->fd = fd;
+
+    serialFlush(fd);
+
+    char line[MAX_LINE_LENGTH];
+    readSerialLine(fd, line);
+
+    if (strcmp(line, "1") != 0) {
+        printf("No response from arduino\n");
+        sv->bProgramExit = 1;
+        return;
+    }
+
+    serialFlush(fd);
 }
 
 // 1. Button
@@ -188,28 +207,6 @@ void body_button(SharedVariable* sv) {
         sv->lastPress = HIGH;
     }
 }
-
-// 2. Infrared Motion Sensor
-/*
-void body_motion(SharedVariable* sv) {
-    if (READ(PIN_MOTION) == LOW) {
-        sv->motion = DETECT_MOTION;
-    } else {
-        sv->motion = NO_MOTION;
-    }
-}
-*/
-
-// 3. Microphone Sound Sensor
-/*
-void body_sound(SharedVariable* sv) {
-    if (READ(PIN_SOUND) == HIGH) {
-        sv->sound = DETECT_SOUND;
-    } else {
-        sv->sound = NO_SOUND;
-    }
-}
-*/
 
 // 4. Rotary Encoder
 void body_encoder(SharedVariable* sv) {
@@ -241,43 +238,9 @@ void body_twocolor(SharedVariable* sv) {
     }
 }
 
-// 6. SMD RGB LED
-/*
-void body_rgbcolor(SharedVariable* sv) {
-    if (sv->state == PAUSE) {
-        softPwmWrite(PIN_SMD_RED, 0);
-        softPwmWrite(PIN_SMD_GRN, 0);
-        softPwmWrite(PIN_SMD_BLU, 0);
-        return;
-    }
-
-    if (sv->motion == NO_MOTION) {
-        if (sv->rotation == CLOCKWISE) {
-            softPwmWrite(PIN_SMD_RED, 0xff);
-            softPwmWrite(PIN_SMD_GRN, 0);
-            softPwmWrite(PIN_SMD_BLU, 0);
-        } else {
-            softPwmWrite(PIN_SMD_RED, 0xee);
-            softPwmWrite(PIN_SMD_GRN, 0);
-            softPwmWrite(PIN_SMD_BLU, 0xc8);
-        }
-    } else {
-        if (sv->rotation == CLOCKWISE) {
-            softPwmWrite(PIN_SMD_RED, 0x80);
-            softPwmWrite(PIN_SMD_GRN, 0xff);
-            softPwmWrite(PIN_SMD_BLU, 0);
-        } else {
-            softPwmWrite(PIN_SMD_RED, 0);
-            softPwmWrite(PIN_SMD_GRN, 0xff);
-            softPwmWrite(PIN_SMD_BLU, 0xff);
-        }
-    }
-}
-*/
-
 // 7. Auto-flash LED
 void body_aled(SharedVariable* sv) {
-    if (sv->state == PAUSE) {
+    if (sv->safety == SAFE) {
         TURN_OFF(PIN_ALED);
     } else {
         TURN_ON(PIN_ALED);
@@ -302,12 +265,53 @@ void body_buzzer(SharedVariable* sv) {
 }
 
 void body_temphumid(SharedVariable* sv) {
-    
+    serialPrintf(sv->fd, "T");
+
+    double humid, temp;
+    char line[MAX_LINE_LENGTH];
+
+    readSerialLine(sv->fd, line);
+    humid = strtod(line, NULL);
+    readSerialLine(sv->fd, line);
+    temp = strtod(line, NULL);
+
+    printf("HUMIDITY: %f\n", humid);
+    printf("TEMP: %f\n", temp);
 } 
 void body_air(SharedVariable* sv) {
+    serialPrintf(sv->fd, "Q");
 
+    double air;
+    char line[MAX_LINE_LENGTH];
+
+    readSerialLine(sv->fd, line);
+    air = strtod(line, NULL);
+
+    if (air < 0) {
+        printf("air quality sensor unavailable\n");
+    } else {
+        printf("AIR QUALITY %f\n", air);
+    }
 }
-void body_heart(SharedVariable* sv) {
+void body_accel(SharedVariable* sv) {
+    serialPrintf(sv->fd, "A");
+
+    double aX, aY, aZ;
+    char line[MAX_LINE_LENGTH];
+
+    readSerialLine(sv->fd, line);
+    aX = strtod(line, NULL);
+    readSerialLine(sv->fd, line);
+    aY = strtod(line, NULL);
+    readSerialLine(sv->fd, line);
+    aZ = strtod(line, NULL);
+
+    printf("ACCELERATION %f %f %f\n", aX, aY, aZ);
+}
+
+void body_lcd(SharedVariable* sv) {
+    serialPrintf(sv->fd, "P%s\n", sv->lcdMsg);
+}
 
 }
 void body_camera(SharedVariable* sv) {

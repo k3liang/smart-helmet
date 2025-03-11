@@ -22,17 +22,9 @@
  ***********************************************************************
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include "read_serial.h"
 
-#include <wiringSerial.h>
-
-#define MAX_LINE_LENGTH 256
-
-char* readSerialData(const int fd);
-char* readSerialLine(const int fd);
-
+/*
 int main ()
 {
   int fd ;
@@ -66,9 +58,10 @@ int main ()
     // fflush (stdout) ;
   }
 }
+*/
 
-char* readSerialData(const int fd) {
-    static char buffer[MAX_LINE_LENGTH];  // Static buffer to hold the data
+char* readSerialData(const int fd, char* buffer) {
+    //static char buffer[MAX_LINE_LENGTH];  // Static buffer to hold the data
     int index = 0;
     int availableData;
     int ch;
@@ -97,8 +90,8 @@ char* readSerialData(const int fd) {
     return buffer;  // Return the buffer that was read
 }
 
-char* readSerialLine(const int fd) {
-    static char line[MAX_LINE_LENGTH];  // Static buffer to hold the line
+char* readSerialLine(const int fd, char* line) {
+    //static char line[MAX_LINE_LENGTH];  // Static buffer to hold the line
     int index = 0;
     int ch;
 

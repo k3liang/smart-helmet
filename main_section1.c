@@ -30,7 +30,8 @@ thread_decl(buzzer)
 
 thread_decl(temphumid)
 thread_decl(air)
-thread_decl(heart)
+thread_decl(accel)
+thread_decl(lcd)
 thread_decl(camera)
 
 // Thread creation and joining macros
@@ -69,11 +70,13 @@ int main(int argc, char* argv[]) {
 			  t_buzzer,
               t_temphumid,
               t_air,
-              t_heart,
+              t_accel,
+              t_lcd,
 			  t_camera;
 
 	// Main program loop
 	while (v.bProgramExit != 1) {
+        /*
 		// Create sensing threads
 		thread_create(button);
 		//thread_create(motion);
@@ -86,7 +89,8 @@ int main(int argc, char* argv[]) {
 
         thread_create(temphumid);
         thread_create(air);
-        thread_create(heart);
+        thread_create(accel);
+        thread_create(lcd);
 		thread_create(camera);
 
 		// Wait for all threads to finish
@@ -101,11 +105,18 @@ int main(int argc, char* argv[]) {
 
         thread_join(temphumid);
         thread_join(air);
-        thread_join(heart);
+        thread_join(accel);
+        thread_join(lcd);
 		thread_join(camera);
 
 		// Add a slight delay between iterations
 		delay(10);
+        */
+       body_temphumid(&v);
+       body_air(&v);
+       body_accel(&v);
+       body_lcd(&v);
+       delay(2000);
 	}
 	printf("trying to clean up python...\n");
 	clean_python(&v);
