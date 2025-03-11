@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "read_serial.h"
+#include <Python.h>
 
 // Macros
 #define TURN_ON(pin) digitalWrite(pin, 1)
@@ -89,6 +90,8 @@ typedef struct shared_variable {
     int safety;
     unsigned int lastDanger;
     int fd;
+    PyObject* pyObjects[4];
+    float eye_ratio;
 } SharedVariable;
 
 // C. Functions
@@ -110,5 +113,9 @@ void body_temphumid(SharedVariable* sv);
 void body_air(SharedVariable* sv);
 void body_accel(SharedVariable* sv);
 void body_lcd(SharedVariable* sv);
+void body_camera(SharedVariable* sv);
+
+int init_python(SharedVariable* sv);
+void clean_python(SharedVariable* sv);
 
 #endif

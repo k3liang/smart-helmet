@@ -59,6 +59,62 @@ int init_boundaries(SharedVariable* sv) {
     return 0;
 }
 
+int init_python(SharedVariable* sv) {
+    Py_Initialize();
+    PyEval_InitThreads();
+    PyRun_SimpleString("import sys; sys.path.append('.')");
+
+    PyObject *pName, *pModule, *pInit, *pDetect, *pCleanup;
+
+    pName = PyUnicode_FromString("eye_detector");
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    if (!pModule) {
+        PyErr_Print();
+        printf("Failed to load Python module\n");
+        return 1;
+    }
+
+    pInit = PyObject_GetAttrString(pModule, "initialize");
+    pDetect = PyObject_GetAttrString(pModule, "detect_drowsiness");
+    pCleanup = PyObject_GetAttrString(pModule, "cleanup");
+
+    if (pInit && PyCallable_Check(pInit)) {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        
+        PyObject *result = PyObject_CallObject(pInit, NULL);
+        if (result == NULL) {
+            PyErr_Print();
+            printf("Python initialization failed.\n");
+            return 1;
+        } else {
+            Py_DECREF(result);
+        }
+
+        PyGILState_Release(gstate);
+    }
+
+    sv->pyObjects[0] = pModule;
+    sv->pyObjects[1] = pInit;
+    sv->pyObjects[2] = pDetect;
+    sv->pyObjects[3] = pCleanup;
+    printf("Python initialized\n");
+    PyEval_SaveThread();
+    return 0;
+}
+
+void clean_python(SharedVariable* sv) {
+    printf("running finalize");
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    Py_XDECREF(sv->pyObjects[1]);
+    Py_XDECREF(sv->pyObjects[2]);
+    Py_XDECREF(sv->pyObjects[3]);
+    Py_DECREF(sv->pyObjects[0]);
+    PyGILState_Release(gstate);
+    Py_Finalize();
+}
+
 void init_shared_variable(SharedVariable* sv) {
     sv->bProgramExit = 0;
     sv->state = RUNNING;
@@ -255,4 +311,36 @@ void body_accel(SharedVariable* sv) {
 
 void body_lcd(SharedVariable* sv) {
     serialPrintf(sv->fd, "P%s\n", sv->lcdMsg);
+}
+
+}
+void body_camera(SharedVariable* sv) {
+    printf("Detecting drowsiness...\n");
+    double eye_ratio = -1.0;
+    if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+	printf("running the function...");
+        PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
+	printf("got result");
+        if (result == NULL) {
+            PyErr_Print();
+            printf("Error calling Python function.\n");
+            PyGILState_Release(gstate);
+            return;
+        }
+
+        if (PyFloat_Check(result)) {
+            eye_ratio = PyFloat_AsDouble(result);
+            printf("Eye Ratio: %f\n", eye_ratio);
+        } else {
+            printf("Returned value is not a float.\n");
+        }
+
+        Py_DECREF(result);
+        PyGILState_Release(gstate);
+    }
+    if(eye_ratio > 0){
+	    sv->bProgramExit = 1;
+    }
+    sv->eye_ratio = eye_ratio;
 }

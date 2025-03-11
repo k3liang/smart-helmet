@@ -32,6 +32,7 @@ thread_decl(temphumid)
 thread_decl(air)
 thread_decl(accel)
 thread_decl(lcd)
+thread_decl(camera)
 
 // Thread creation and joining macros
 #define thread_create(NAME) pthread_create(&t_##NAME, NULL, thread_##NAME, &v);
@@ -54,6 +55,9 @@ int main(int argc, char* argv[]) {
     }
 	init_shared_variable(&v);
 	init_sensors(&v);
+	if (init_python(&v) != 0) {
+		printf("Failed to initialize Python.\n");
+	}
 
 	// Thread identifiers
 	pthread_t t_button,
@@ -67,7 +71,8 @@ int main(int argc, char* argv[]) {
               t_temphumid,
               t_air,
               t_accel,
-              t_lcd;
+              t_lcd,
+			  t_camera;
 
 	// Main program loop
 	while (v.bProgramExit != 1) {
@@ -85,6 +90,8 @@ int main(int argc, char* argv[]) {
         thread_create(temphumid);
         thread_create(air);
         thread_create(accel);
+        thread_create(lcd);
+		thread_create(camera);
 
 		// Wait for all threads to finish
 		thread_join(button);
@@ -99,6 +106,8 @@ int main(int argc, char* argv[]) {
         thread_join(temphumid);
         thread_join(air);
         thread_join(accel);
+        thread_join(lcd);
+		thread_join(camera);
 
 		// Add a slight delay between iterations
 		delay(10);
@@ -109,6 +118,8 @@ int main(int argc, char* argv[]) {
        body_lcd(&v);
        delay(2000);
 	}
+	printf("trying to clean up python...\n");
+	clean_python(&v);
 
 	printf("Program finished.\n");
 
