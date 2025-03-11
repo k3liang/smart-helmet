@@ -250,9 +250,9 @@ void body_button(SharedVariable* sv) {
                 sv->lastTune = millis();
 
                 if (sv->tuningIndex % 2 == 0) {
-                    makelcdMsg(sv, "L:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex]);
+                    makelcdMsg(sv, "L:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex/NUMVALUES][LOW]);
                 } else {
-                    makelcdMsg(sv, "R:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex]);
+                    makelcdMsg(sv, "R:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex/NUMVALUES][HIGH]);
                 }
             }
 
@@ -281,26 +281,27 @@ void body_encoder(SharedVariable* sv) {
     int currClk = READ(PIN_ROTARY_CLK);
     if (currClk != sv->lastClk && currClk == HIGH) {
         double stepsize;
+        int sName = sv->tuningIndex/NUMVALUES;
         if (sv->tuningIndex % 2 == 0) {
-            stepsize = (sv->info[sv->tuningIndex+1] - sv->info[sv->tuningIndex])/ STEPFACTOR;
+            stepsize = (sv->info[sName][HIGH] - sv->info[sName][LOW])/ STEPFACTOR;
         } else {
-            stepsize = (sv->info[sv->tuningIndex] - sv->info[sv->tuningIndex-1])/ STEPFACTOR;
+            stepsize = (sv->info[sName][HIGH] - sv->info[sName][LOW])/ STEPFACTOR;
         }
 
         if (READ(PIN_ROTARY_DT) != currClk) {
             sv->rotation = COUNTER_CLOCKWISE;
-            sv->info[sv->tuningIndex] -= stepsize;
+            sv->info[sName][sv->tuningIndex%NUMVALUES] -= stepsize;
         } else {
             sv->rotation = CLOCKWISE;
-            sv->info[sv->tuningIndex] += stepsize;
+            sv->info[sName][sv->tuningIndex%NUMVALUES] += stepsize;
         }
 
         if (sv->tuningIndex % 2 == 0) {
-            makelcdMsg(sv, "L:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex]);
-            sv->stable[sv->tuningIndex/NUMVALUES] = (sv->info[sv->tuningIndex]+sv->info[sv->tuningIndex+1]) / 2.0;
+            makelcdMsg(sv, "L:", names[sName], sv->info[sName][sv->tuningIndex%NUMVALUES]);
+            sv->stable[sName] = (sv->info[sName][LOW]+sv->info[sName][HIGH]) / 2.0;
         } else {
-            makelcdMsg(sv, "R:", names[sv->tuningIndex/NUMVALUES], sv->info[sv->tuningIndex]);
-            sv->stable[sv->tuningIndex/NUMVALUES] = (sv->info[sv->tuningIndex]+sv->info[sv->tuningIndex-1]) / 2.0;
+            makelcdMsg(sv, "R:", names[sName], sv->info[sName][sv->tuningIndex%NUMVALUES]);
+            sv->stable[sName] = (sv->info[sName][HIGH]+sv->info[sName][LOW]) / 2.0;
         }
     }
     sv->lastClk = currClk;
