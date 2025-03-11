@@ -29,8 +29,8 @@
 #define DETECT_MOTION 1
 #define NO_MOTION 0
 
-#define FALSE 0
-#define TRUE 1
+//#define FALSE 0
+//#define TRUE 1
 
 #define LOWBOUND 0
 #define HIGHBOUND 1
