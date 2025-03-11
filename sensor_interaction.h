@@ -61,6 +61,8 @@
 
 #define CHANGETHRES 0.08
 
+#define MAXCOLOR 255
+
 // A. Pin number definitions (DO NOT MODIFY)
 // We use 8 sensors.
 //
@@ -77,6 +79,11 @@
 // 5. DIP two-color LED (Dual In-line Package)
 #define PIN_DIP_RED 8
 #define PIN_DIP_GRN 9
+
+// 6. SMD RGB LED (Surface Mount Device)
+#define PIN_SMD_RED 28
+#define PIN_SMD_GRN 27
+#define PIN_SMD_BLU 29
 
 // 7. Auto-flash LED
 #define PIN_ALED 12

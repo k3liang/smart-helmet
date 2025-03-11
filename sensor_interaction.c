@@ -175,11 +175,11 @@ void init_shared_variable(SharedVariable* sv) {
 
 void ledInit(void) {
     //initialize SMD and DIP
-    //softPwmCreate(PIN_SMD_RED, 0, 0xff);
-    //softPwmCreate(PIN_SMD_GRN, 0, 0xff);
-    //softPwmCreate(PIN_SMD_BLU, 0, 0xff);
-    softPwmCreate(PIN_DIP_RED, 0, 0xff);
-    softPwmCreate(PIN_DIP_GRN, 0, 0xff);
+    softPwmCreate(PIN_SMD_RED, 0, 0xff);
+    softPwmCreate(PIN_SMD_GRN, 0, 0xff);
+    softPwmCreate(PIN_SMD_BLU, 0, 0xff);
+    //softPwmCreate(PIN_DIP_RED, 0, 0xff);
+    //softPwmCreate(PIN_DIP_GRN, 0, 0xff);
 }
 
 void init_sensors(SharedVariable* sv) {
@@ -189,8 +189,11 @@ void init_sensors(SharedVariable* sv) {
     pinMode(PIN_ROTARY_CLK, INPUT);
     pinMode(PIN_ROTARY_DT, INPUT);
 
-    pinMode(PIN_DIP_RED, OUTPUT);
-    pinMode(PIN_DIP_GRN, OUTPUT);
+    //pinMode(PIN_DIP_RED, OUTPUT);
+    //pinMode(PIN_DIP_GRN, OUTPUT);
+    pinMode(PIN_SMD_RED, OUTPUT);
+    pinMode(PIN_SMD_GRN, OUTPUT);
+    pinMode(PIN_SMD_BLU, OUTPUT);
 
     pinMode(PIN_ALED, OUTPUT);
     pinMode(PIN_BUZZER, OUTPUT);
@@ -200,6 +203,8 @@ void init_sensors(SharedVariable* sv) {
 
     // initialize buzzer pulses
     softPwmCreate(PIN_BUZZER, 0, 100);
+
+    softPwmWrite(PIN_SMD_BLU, 0);
 
     int fd;
     if ((fd = serialOpen ("/dev/ttyACM0", 115200)) < 0)
@@ -311,6 +316,16 @@ void body_encoder(SharedVariable* sv) {
     }
 }
 
+int clamp(int num, int min, int max) {
+    if (num < min) {
+        return min;
+    }
+    if (num > max) {
+        return max;
+    }
+    return num;
+}
+
 // 5. DIP two-color LED
 void body_twocolor(SharedVariable* sv) {
     int i;
@@ -321,9 +336,9 @@ void body_twocolor(SharedVariable* sv) {
         }
     }
 
-    int greenLit = (int) (255*(1-maxDanger));
-    softPwmWrite(PIN_DIP_GRN, greenLit);
-    softPwmWrite(PIN_DIP_RED, 255 - greenLit);
+    int greenLit = (int) (MAXCOLOR*(1-maxDanger));
+    softPwmWrite(PIN_SMD_GRN, clamp(greenLit, 0, MAXCOLOR));
+    softPwmWrite(PIN_SMD_RED, clamp(MAXCOLOR - greenLit, 0, MAXCOLOR));
 }
 
 // 7. Auto-flash LED
