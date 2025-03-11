@@ -30,17 +30,17 @@ def detect_drowsiness():
     faces = face_detector(gray_scale, 0)
 
     for face in faces:
-        print("detected face")
+        # print("detected face")
         landmarks = dlib_facelandmark(gray_scale, face)
         leftEye = [(landmarks.part(n).x, landmarks.part(n).y) for n in range(36, 42)]
         rightEye = [(landmarks.part(n).x, landmarks.part(n).y) for n in range(42, 48)]
 
         eye_ratio = (Detect_Eye(leftEye) + Detect_Eye(rightEye)) / 2
         eye_ratio = round(eye_ratio, 2)
-        print("finished_detection")
+        # print("finished_detection")
         return eye_ratio
-    print("no face")
-    print("finished_detection")
+    # print("no face")
+    # print("finished_detection")
     return -1.0
 
 # Cleanup

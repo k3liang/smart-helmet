@@ -314,13 +314,13 @@ void body_lcd(SharedVariable* sv) {
 }
 
 void body_camera(SharedVariable* sv) {
-    printf("Detecting drowsiness...\n");
+    // printf("Detecting drowsiness...\n");
     double eye_ratio = -1.0;
     if (sv->pyObjects[2] && PyCallable_Check(sv->pyObjects[2])) {
         PyGILState_STATE gstate = PyGILState_Ensure();
-	printf("running the function...");
+	// printf("running the function...");
         PyObject *result = PyObject_CallObject(sv->pyObjects[2], NULL);
-	printf("got result");
+	// printf("got result");
         if (result == NULL) {
             PyErr_Print();
             printf("Error calling Python function.\n");
@@ -338,9 +338,6 @@ void body_camera(SharedVariable* sv) {
 
         Py_DECREF(result);
         PyGILState_Release(gstate);
-    }
-    if(eye_ratio > 0){
-	    sv->bProgramExit = 1;
     }
     sv->eye_ratio = eye_ratio;
 }
