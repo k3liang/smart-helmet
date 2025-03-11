@@ -112,11 +112,12 @@ int main(int argc, char* argv[]) {
 		// Add a slight delay between iterations
 		delay(10);
         */
-       body_temphumid(&v);
+       /*body_temphumid(&v);
        body_air(&v);
        body_accel(&v);
        body_lcd(&v);
-       delay(2000);
+       delay(2000);*/
+       body_camera(&v);
 	}
 	printf("trying to clean up python...\n");
 	clean_python(&v);

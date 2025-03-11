@@ -313,7 +313,6 @@ void body_lcd(SharedVariable* sv) {
     serialPrintf(sv->fd, "P%s\n", sv->lcdMsg);
 }
 
-}
 void body_camera(SharedVariable* sv) {
     printf("Detecting drowsiness...\n");
     double eye_ratio = -1.0;
