@@ -31,6 +31,7 @@ thread_decl(buzzer)
 thread_decl(temphumid)
 thread_decl(air)
 thread_decl(heart)
+thread_decl(camera)
 
 // Thread creation and joining macros
 #define thread_create(NAME) pthread_create(&t_##NAME, NULL, thread_##NAME, &v);
@@ -53,6 +54,7 @@ int main(int argc, char* argv[]) {
     }
 	init_shared_variable(&v);
 	init_sensors(&v);
+	init_python(v.pyObjects);
 
 	// Thread identifiers
 	pthread_t t_button,
@@ -65,7 +67,8 @@ int main(int argc, char* argv[]) {
 			  t_buzzer,
               t_temphumid,
               t_air,
-              t_heart;
+              t_heart,
+			  t_camera;
 
 	// Main program loop
 	while (v.bProgramExit != 1) {
@@ -82,6 +85,7 @@ int main(int argc, char* argv[]) {
         thread_create(temphumid);
         thread_create(air);
         thread_create(heart);
+		thread_create(camera);
 
 		// Wait for all threads to finish
 		thread_join(button);
@@ -96,10 +100,12 @@ int main(int argc, char* argv[]) {
         thread_join(temphumid);
         thread_join(air);
         thread_join(heart);
+		thread_join(camera);
 
 		// Add a slight delay between iterations
 		delay(10);
 	}
+	python_cleanup(v.pyObjects);
 
 	printf("Program finished.\n");
 
