@@ -11,7 +11,6 @@ def initialize():
     face_detector = dlib.get_frontal_face_detector()
     predictor_path = "./shape_predictor_68_face_landmarks.dat"
     dlib_facelandmark = dlib.shape_predictor(predictor_path)
-    print("Initialization completed.")
 
 # Eye aspect ratio function
 def Detect_Eye(eye):
@@ -22,15 +21,12 @@ def Detect_Eye(eye):
 
 # Detection logic (Call repeatedly)
 def detect_drowsiness():
-    print("detecting drowsiness")
     ret, frame = cap.read()
     if not ret:
-        print("Failed to capture frame.")
         return
     
     gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_detector(gray_scale, 0)
-    print("num_faces detected:", len(faces))
 
     for face in faces:
         landmarks = dlib_facelandmark(gray_scale, face)
@@ -45,5 +41,4 @@ def detect_drowsiness():
 # Cleanup
 def cleanup():
     cap.release()
-    print("Camera released.")
 
