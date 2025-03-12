@@ -293,6 +293,7 @@ void body_encoder(SharedVariable* sv) {
     if (currClk != sv->lastClk && currClk == HIGH) {
         double stepsize;
         int sName = sv->tuningIndex/NUMVALUES;
+        sv->lastTune = millis();
         if (sv->tuningIndex % 2 == 0) {
             stepsize = (sv->info[sName][HIGH] - sv->info[sName][LOW])/ STEPFACTOR;
         } else {

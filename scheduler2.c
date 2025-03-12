@@ -10,7 +10,11 @@
 
 void (*body[NUMSENSORS]) (SharedVariable*) = {body_button, body_encoder,
     body_twocolor, body_aled, body_buzzer, body_temphumid, body_air,
-   body_accel, body_lcd, body_camera};
+   body_accel, body_camera, body_lcd};
+
+static unsigned long long execTimes[] = { // microseconds
+    15, 5, 5, 5, 5, 220000, 5000, 40000, 60000, 5
+};
 
 static int queue[NUMSENSORS];
 
@@ -23,24 +27,13 @@ unsigned long long get_current_time_us() {
 
 void learn_exectimes(SharedVariable* sv) {
     int i;
+    unsigned long long currTime = get_current_time_us(); 
     for (i = 0; i < NUMSENSORS; i++) {
         queue[i] = -1;
         sv->alive[i] = 0;
-    }
-    delay(1000);
-    for (i = 0; i < NUMSENSORS; i++) {
-        unsigned int beginTime = millis();
-        (*body[i]) (sv);
-        unsigned int endTime = millis();
-        sv->execTimes[i] = endTime - beginTime;
-        sv->deadlines[i] = (endTime - beginTime) * NUMSENSORS * 2;
-        delay(200);
-    }
-    unsigned int currTime = millis();
-    for (i = 0; i < NUMSENSORS; i++) {
+        sv->deadlines[i] = execTimes[i] * NUMSENSORS * 2;
         sv->nextArrive[i] = currTime + sv->deadlines[i];
     }
-    init_shared_variable(sv);
 }
 
 void enqueue(SharedVariable* sv, int p) {
@@ -71,7 +64,7 @@ int dequeue() {
 }
 
 void run_task(SharedVariable* sv) {
-    unsigned int currTime = millis();
+    unsigned long long currTime = get_current_time_us();
     int i;
     for (i = 0; i < NUMSENSORS; i++) {
         if (sv->nextArrive[i] <= currTime) {
@@ -80,7 +73,7 @@ void run_task(SharedVariable* sv) {
                 sv->currDeadline[i] = sv->nextArrive[i] + sv->deadlines[i];
                 enqueue(sv, i);
             } else {
-                printf("task %d deadline missed", i);
+                //printf("task %d deadline missed", i);
             }
             sv->nextArrive[i] += sv->deadlines[i];
         }
@@ -89,5 +82,7 @@ void run_task(SharedVariable* sv) {
         int p = dequeue();
         (*body[p]) (sv);
         sv->alive[p] = 0;
+        //printf("%llu took this much microseconds for run task %d \n", get_current_time_us() - currTime, p);
     }
+    
 }

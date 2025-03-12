@@ -102,10 +102,9 @@ typedef struct shared_variable {
     PyObject* pyObjects[4];
     float eye_ratio;
 
-    unsigned int deadlines[NUMSENSORS];
-    unsigned int execTimes[NUMSENSORS];
-    unsigned int nextArrive[NUMSENSORS];
-    unsigned int currDeadline[NUMSENSORS];
+    unsigned long long deadlines[NUMSENSORS];
+    unsigned long long nextArrive[NUMSENSORS];
+    unsigned long long currDeadline[NUMSENSORS];
     int alive[NUMSENSORS];
 } SharedVariable;
 

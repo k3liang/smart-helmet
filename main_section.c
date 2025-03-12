@@ -53,9 +53,9 @@ int main(int argc, char* argv[]) {
        body_camera(&v);
        body_lcd(&v);*/
        //delay(2000);
-        //run_task(&v);
+        run_task(&v);
         //delay(10);
-        set_by_max_freq();
+        /*set_by_max_freq();
         delay(2000);
         unsigned long long begin = get_current_time_us();
         body_button(&v);
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
         set_by_min_freq();
         begin = get_current_time_us();
         body_button(&v);
-        printf("min freq took %llu\n", get_current_time_us() - begin);
+        printf("min freq took %llu\n", get_current_time_us() - begin);*/
 
 	}
     printf("saving all manual calibrations");
