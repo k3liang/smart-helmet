@@ -35,8 +35,21 @@
 #define NUMINPUTS 5
 
 #define NUMSENSORS 10
-
+#define NUMDISPLAY 2
+#define NUMREAD 4
+#define NUMTUNE 2
+#define NUMALARM 2
+//body_button, body_encoder,body_twocolor, body_aled, body_buzzer, body_temphumid, body_air, body_accel, body_camera, body_lcd
+#define IBUTTON 0
+#define IENCODER 1
+#define ISMD 2
+#define IALED 3
+#define IBUZZER 4
+#define ITEMP 5
 #define IAIR 6
+#define IACCEL 7
+#define ICAM 8
+#define ILCD 9
 
 #define SENSORFILE "sensor_values.txt"
 
@@ -52,6 +65,7 @@
 #define FACENUM 5
 
 #define ACCELPERIOD 30000
+#define ACCELNOISE 0.03
 
 #define CHANGETHRES 0.03
 #define RELDANGERTHRES 0.8
@@ -64,6 +78,13 @@
 #define FREE -1
 
 #define WARNWAIT 5000
+
+#define MAX_UTIL 0.9
+#define ON_TUNE_UTIL 4.0
+#define OFF_TUNE_UTIL 0.25
+#define ON_ALARM_UTIL 1.0
+#define OFF_ALARM_UTIL 0.25 
+#define DISPLAY_UTIL 2.0
 
 #define PIN_BUTTON 0
 #define PIN_ROTARY_CLK 5
@@ -94,6 +115,7 @@ typedef struct shared_variable {
     double air;
     double accel;
     double face;
+    double dataS[NUMINPUTS];
     double faces[FACENUM];
     int faceIndex;
     double faceSum;
@@ -117,6 +139,13 @@ typedef struct shared_variable {
     unsigned long long nextArrive[NUMSENSORS];
     unsigned long long currDeadline[NUMSENSORS];
     int alive[NUMSENSORS];
+
+    //double slackUtil;
+    //double utils[NUMSENSORS];
+    double sensorUtil;
+    double displayUtil;
+    double tuneUtil;
+    double alarmUtil;
 } SharedVariable;
 
 int init_boundaries(SharedVariable* sv);

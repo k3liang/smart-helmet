@@ -28,6 +28,15 @@ void printLCD() {
   lcd.print(data);
 }
 
+void printLCD2() {
+  String data = Serial.readStringUntil('_');
+  String data2 = Serial.readStringUntil('\n');
+  lcd.clear();
+  lcd.print(data);
+  lcd.setCursor(0, 1);
+  lcd.print(data2);
+}
+
 void readTempHumid() {
   // takes roughly 250ms
   float h = dht.readHumidity();
@@ -119,6 +128,9 @@ void loop() {
         break;
       case 'P':
         printLCD();
+        break;
+      case 'p':
+        printLCD2();
         break;
     }
   }

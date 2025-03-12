@@ -26,16 +26,59 @@ unsigned long long get_current_time_us() {
 }
 
 void learn_exectimes(SharedVariable* sv) {
-    int i;
+    /*int i;
     unsigned long long currTime = get_current_time_us(); 
     for (i = 0; i < NUMSENSORS; i++) {
         queue[i] = -1;
         sv->alive[i] = 0;
-        sv->deadlines[i] = execTimes[i] * NUMSENSORS * 2;
+        sv->deadlines[i] = execTimes[i] * NUMSENSORS * 4;
         sv->nextArrive[i] = currTime + sv->deadlines[i];
     }
 
-    sv->deadlines[IAIR] = 1000000; // air quality sensor needs to be really delayed between polls
+    sv->deadlines[IAIR] = 1000000; */
+    // air quality sensor needs to be really delayed between polls
+
+    /*
+    sv->slackUtil = MAXUTIL;
+    for (i = 0; i < NUMSENSORS; i++) {
+        sv->utils[i] = (double)(execTimes[i]) / (double)(sv->deadlines[i]);
+        sv->slackUtil -= sv->utils[i];
+    }
+    */
+    
+    sv->displayUtil = DISPLAY_UTIL * MAX_UTIL / NUMSENSORS;
+    sv->tuneUtil = OFF_TUNE_UTIL * MAX_UTIL / NUMSENSORS;
+    sv->alarmUtil = OFF_ALARM_UTIL * MAX_UTIL / NUMSENSORS;
+    sv->sensorUtil = MAX_UTIL - sv->displayUtil - sv->tuneUtil - sv->alarmUtil;
+
+    sv->deadlines[ILCD] = (unsigned long long)(execTimes[ILCD] * NUMSENSORS * NUMDISPLAY / (DISPLAY_UTIL * MAX_UTIL));
+    sv->deadlines[ISMD] = (unsigned long long)(execTimes[ISMD] * NUMSENSORS * NUMDISPLAY / (DISPLAY_UTIL * MAX_UTIL));
+
+    sv->deadlines[IBUTTON] = (unsigned long long)(execTimes[IBUTTON] * NUMSENSORS * NUMTUNE / (OFF_TUNE_UTIL * MAX_UTIL));
+    sv->deadlines[IENCODER] = (unsigned long long)(execTimes[IENCODER] * NUMSENSORS * NUMTUNE / (OFF_TUNE_UTIL * MAX_UTIL));
+
+    sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMSENSORS * NUMALARM / (OFF_ALARM_UTIL * MAX_UTIL));
+    sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMSENSORS * NUMALARM / (OFF_ALARM_UTIL * MAX_UTIL));
+
+    int i;
+    for (i = ITEMP; i <= ICAM; i++) {
+        sv->deadlines[i] = (unsigned long long)(execTimes[i] * NUMREAD / sv->sensorUtil);
+    }
+
+    unsigned long long currTime = get_current_time_us(); 
+    for (i = 0; i < NUMSENSORS; i++) {
+        queue[i] = -1;
+        sv->alive[i] = 0;
+        sv->nextArrive[i] = currTime + sv->deadlines[i];
+    }
+}
+
+void tuneOn(SharedVariable *sv) {
+
+}
+
+void tuneOff(SharedVariable *sv) {
+
 }
 
 void enqueue(SharedVariable* sv, int p) {
