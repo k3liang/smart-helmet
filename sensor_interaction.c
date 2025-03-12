@@ -55,6 +55,18 @@ void saveCalib(SharedVariable* sv) {
     fclose(file);
 }
 
+void clean_sensors(SharedVariable* sv) {
+    serialPrintf(sv->fd, "P\n"); // empty LCD display
+    
+    // turn off LEDs and buzzer
+    softPwmWrite(PIN_SMD_GRN, 0);
+    softPwmWrite(PIN_SMD_RED, 0);
+
+    TURN_OFF(PIN_ALED);
+
+    softPwmWrite(PIN_BUZZER, 0);
+}
+
 int init_boundaries(SharedVariable* sv) {
     FILE* file;
 
@@ -158,6 +170,7 @@ void init_shared_variable(SharedVariable* sv) {
     for (i = 0; i < NUMINPUTS; i++) {
         sv->stable[i] = (sv->info[i][LOW]+sv->info[i][HIGH]) / 2.0;
         sv->relDanger[i] = 0.0;
+        sv->prevRelDanger[i] = 0.0;
     }
 
     strcpy(sv->prevlcdMsg, "");
@@ -286,19 +299,29 @@ void body_encoder(SharedVariable* sv) {
             stepsize = (sv->info[sName][HIGH] - sv->info[sName][LOW])/ STEPFACTOR;
         }
 
+        int colValue = sv->tuningIndex % NUMVALUES;
+
         if (READ(PIN_ROTARY_DT) != currClk) {
             sv->rotation = COUNTER_CLOCKWISE;
-            sv->info[sName][sv->tuningIndex%NUMVALUES] -= stepsize;
+            sv->info[sName][colValue] -= stepsize;
+
+            if (sv->info[sName][LOW] > sv->info[sName][HIGH]) {
+                sv->info[sName][colValue] += stepsize;
+            }
         } else {
             sv->rotation = CLOCKWISE;
-            sv->info[sName][sv->tuningIndex%NUMVALUES] += stepsize;
+            sv->info[sName][colValue] += stepsize;
+
+            if (sv->info[sName][LOW] > sv->info[sName][HIGH]) {
+                sv->info[sName][colValue] -= stepsize;
+            }
         }
 
         if (sv->tuningIndex % 2 == 0) {
-            makelcdMsg(sv, "L:", names[sName], sv->info[sName][sv->tuningIndex%NUMVALUES]);
+            makelcdMsg(sv, "L:", names[sName], sv->info[sName][colValue]);
             sv->stable[sName] = (sv->info[sName][LOW]+sv->info[sName][HIGH]) / 2.0;
         } else {
-            makelcdMsg(sv, "R:", names[sName], sv->info[sName][sv->tuningIndex%NUMVALUES]);
+            makelcdMsg(sv, "R:", names[sName], sv->info[sName][colValue]);
             sv->stable[sName] = (sv->info[sName][HIGH]+sv->info[sName][LOW]) / 2.0;
         }
     }
@@ -306,6 +329,7 @@ void body_encoder(SharedVariable* sv) {
 
     if (millis() - sv->lastTune >= TUNINGDEBOUNCE) {
         sv->tuning = FALSE;
+        strcpy(sv->lcdMsg, "");
     }
 }
 
@@ -322,12 +346,19 @@ int clamp(int num, int min, int max) {
 // SMD treated as a two-color
 void body_twocolor(SharedVariable* sv) {
     int i;
+    int j = 0;
     double maxDanger = sv->relDanger[0];
     for (i = 1; i < NUMINPUTS; i++) {
         if (sv->relDanger[i] > maxDanger) {
             maxDanger = sv->relDanger[i];
+            j = i;
         }
     }
+
+    if (maxDanger >= RELDANGERTHRES && sv->prevRelDanger[j] < RELDANGERTHRES) {
+        makelcdMsg(sv, "WARN ", names[j], maxDanger);
+    }
+    sv->prevRelDanger[j] = sv->relDanger[j];
 
     int greenLit = (int) (MAXCOLOR*(1-maxDanger));
     softPwmWrite(PIN_SMD_GRN, clamp(greenLit, 0, MAXCOLOR));
@@ -391,8 +422,8 @@ void body_temphumid(SharedVariable* sv) {
 
     //printf("HUMIDITY: %f\n", humid);
     //printf("TEMP: %f\n", temp);
-    sv->relDanger[TEMP] = fabs(temp - sv->stable[TEMP]) / sv->stable[TEMP] * 2;
-    sv->relDanger[HUMID] = fabs(humid - sv->stable[HUMID]) / sv->stable[HUMID] * 2;
+    sv->relDanger[TEMP] = fabs(temp - sv->stable[TEMP]) / (sv->info[TEMP][HIGH] - sv->info[TEMP][LOW]) * 2;
+    sv->relDanger[HUMID] = fabs(humid - sv->stable[HUMID]) / (sv->info[HUMID][HIGH] - sv->info[HUMID][LOW]) * 2;
 
     if (temp < sv->info[TEMP][LOW] || temp > sv->info[TEMP][HIGH]) {
         if (sv->safety == SAFE) {
@@ -435,7 +466,7 @@ void body_air(SharedVariable* sv) {
         printf("air quality sensor unavailable\n");
     } else {
         //printf("AIR QUALITY %f\n", air);
-        sv->relDanger[AIR] = fabs(air - sv->stable[AIR]) / sv->stable[AIR] * 2;
+        sv->relDanger[AIR] = fabs(air - sv->stable[AIR]) / (sv->info[AIR][HIGH] - sv->info[AIR][LOW]) * 2;
         if (air < sv->info[AIR][LOW] || air > sv->info[AIR][HIGH]) {
             if (sv->safety == SAFE) {
                 sv->lastDanger = millis();
@@ -486,7 +517,7 @@ void body_accel(SharedVariable* sv) {
     if (sv->lastAccel == 0) {
         sv->lastAccel = millis();
     } else if (millis() - sv->lastAccel >= ACCELPERIOD) {
-        sv->relDanger[ACCEL] = fabs(sv->accelSum - sv->stable[ACCEL]) / sv->stable[ACCEL] * 2;
+        sv->relDanger[ACCEL] = fabs(sv->accelSum - sv->stable[ACCEL]) / (sv->info[ACCEL][HIGH] - sv->info[ACCEL][LOW]) * 2;
         if (sv->accelSum < sv->info[ACCEL][LOW] || sv->accelSum > sv->info[ACCEL][HIGH]) {
             if (sv->safety == SAFE) {
                 sv->lastDanger = millis();
@@ -533,7 +564,7 @@ void body_camera(SharedVariable* sv) {
                 sv->faces[sv->faceIndex] = eye_ratio;
                 sv->faceSum += eye_ratio;
                 double faceAvg = sv->faceSum / FACENUM;
-                sv->relDanger[FACE] = fabs(faceAvg - sv->stable[FACE]) / sv->stable[FACE] * 2;
+                sv->relDanger[FACE] = fabs(faceAvg - sv->stable[FACE]) / (sv->info[FACE][HIGH] - sv->info[FACE][LOW]) * 2;
                 if (faceAvg < sv->info[FACE][LOW] || faceAvg > sv->info[FACE][HIGH]) {
                     if (sv->safety == SAFE) {
                         sv->lastDanger = millis();

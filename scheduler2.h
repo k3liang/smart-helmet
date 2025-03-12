@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+unsigned long long get_current_time_us();
+
 void learn_exectimes(SharedVariable* sv);
 void run_task(SharedVariable* sv);
 

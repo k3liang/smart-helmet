@@ -39,7 +39,7 @@ char* readSerialLine(const int fd, char* line) {
     memset(line, 0, MAX_LINE_LENGTH);
 
     while (index < MAX_LINE_LENGTH - 1) {
-        ch = serialGetchar(fd);  // Read next character from the serial port
+        ch = serialGetchar(fd); 
 
         if (ch == -1) {
             continue;

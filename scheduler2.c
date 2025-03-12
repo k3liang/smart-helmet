@@ -3,11 +3,23 @@
 #include <wiringPi.h>
 #include <stdlib.h>
 
+#include <sys/timeb.h>
+#include <sys/time.h>
+#include <time.h>
+#include <sys/stat.h>
+
 void (*body[NUMSENSORS]) (SharedVariable*) = {body_button, body_encoder,
     body_twocolor, body_aled, body_buzzer, body_temphumid, body_air,
    body_accel, body_lcd, body_camera};
 
 static int queue[NUMSENSORS];
+
+unsigned long long get_current_time_us() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    unsigned long long curTime = (unsigned long long)tv.tv_sec * 1000 * 1000 + (unsigned long long)tv.tv_usec;
+    return curTime;
+}
 
 void learn_exectimes(SharedVariable* sv) {
     int i;
@@ -38,7 +50,7 @@ void enqueue(SharedVariable* sv, int p) {
             queue[i] = p;
             return;
         }
-        if (sv->nextArrive[p] < sv->nextArrive[queue[i]]) {
+        if (sv->currDeadline[p] < sv->currDeadline[queue[i]]) {
             for (j = NUMSENSORS-1; j > i; j--) {
                 queue[j] = queue[j-1];
             }
@@ -65,6 +77,7 @@ void run_task(SharedVariable* sv) {
         if (sv->nextArrive[i] <= currTime) {
             if (sv->alive[i] == 0) {
                 sv->alive[i] = 1;
+                sv->currDeadline[i] = sv->nextArrive[i] + sv->deadlines[i];
                 enqueue(sv, i);
             } else {
                 printf("task %d deadline missed", i);

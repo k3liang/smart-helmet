@@ -52,6 +52,7 @@
 #define ACCELPERIOD 30000
 
 #define CHANGETHRES 0.08
+#define RELDANGERTHRES 0.9
 
 #define MAXCOLOR 255
 
@@ -59,8 +60,8 @@
 #define PIN_ROTARY_CLK 5
 #define PIN_ROTARY_DT 6
 
-#define PIN_DIP_RED 8
-#define PIN_DIP_GRN 9
+//#define PIN_DIP_RED 8
+//#define PIN_DIP_GRN 9
 #define PIN_SMD_RED 28
 #define PIN_SMD_GRN 27
 #define PIN_SMD_BLU 29
@@ -78,6 +79,7 @@ typedef struct shared_variable {
     double info[NUMINPUTS][NUMVALUES];
     double stable[NUMINPUTS]; // "stable" level; we assume an average of bounds
     double relDanger[NUMINPUTS]; // relative danger
+    double prevRelDanger[NUMINPUTS];
     double temp;
     double humid;
     double air;
@@ -103,6 +105,7 @@ typedef struct shared_variable {
     unsigned int deadlines[NUMSENSORS];
     unsigned int execTimes[NUMSENSORS];
     unsigned int nextArrive[NUMSENSORS];
+    unsigned int currDeadline[NUMSENSORS];
     int alive[NUMSENSORS];
 } SharedVariable;
 
@@ -123,6 +126,7 @@ void body_lcd(SharedVariable* sv);
 void body_camera(SharedVariable* sv);
 
 void saveCalib(SharedVariable* sv);
+void clean_sensors(SharedVariable* sv);
 
 int init_python(SharedVariable* sv);
 void clean_python(SharedVariable* sv);
