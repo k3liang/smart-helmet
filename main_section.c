@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 		printf("Failed to initialize Python.\n");
 	}
 
-    set_by_max_freq(); // reset to the max freq
+    set_by_min_freq(); // set to the min freq
     learn_exectimes(&v);
 
 	// Main program loop
@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
         printf("min freq took %llu\n", get_current_time_us() - begin);*/
 
 	}
+    set_by_max_freq();
     printf("saving all manual calibrations");
     saveCalib(&v);
 

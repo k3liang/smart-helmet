@@ -34,6 +34,8 @@ void learn_exectimes(SharedVariable* sv) {
         sv->deadlines[i] = execTimes[i] * NUMSENSORS * 2;
         sv->nextArrive[i] = currTime + sv->deadlines[i];
     }
+
+    sv->deadlines[IAIR] = 1000000; // air quality sensor needs to be really delayed between polls
 }
 
 void enqueue(SharedVariable* sv, int p) {

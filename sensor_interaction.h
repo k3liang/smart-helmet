@@ -36,6 +36,8 @@
 
 #define NUMSENSORS 10
 
+#define IAIR 6
+
 #define SENSORFILE "sensor_values.txt"
 
 #define SAFE 1
@@ -51,10 +53,17 @@
 
 #define ACCELPERIOD 30000
 
-#define CHANGETHRES 0.08
-#define RELDANGERTHRES 0.9
+#define CHANGETHRES 0.03
+#define RELDANGERTHRES 0.8
 
 #define MAXCOLOR 255
+
+#define PTUNING 2
+#define PDANGER 1
+#define PWARN 0
+#define FREE -1
+
+#define WARNWAIT 5000
 
 #define PIN_BUTTON 0
 #define PIN_ROTARY_CLK 5
@@ -92,9 +101,11 @@ typedef struct shared_variable {
     double accelSum;
     char prevlcdMsg[MAX_LINE_LENGTH];
     char lcdMsg[MAX_LINE_LENGTH];
+    int printState;
     int safety;
     unsigned int dangerCooldown;
     unsigned int lastDanger;
+    unsigned int lastWarn;
     int tuning;
     unsigned int lastTune;
     int tuningIndex;
