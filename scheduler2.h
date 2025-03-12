@@ -11,4 +11,7 @@ void run_task(SharedVariable* sv);
 void tuneOn(SharedVariable *sv);
 void tuneOff(SharedVariable *sv);
 
+void alarmOn(SharedVariable *sv);
+void alarmOff(SharedVariable *sv);
+
 #endif

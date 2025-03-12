@@ -179,6 +179,7 @@ void init_shared_variable(SharedVariable* sv) {
         sv->relDanger[i] = 0.0;
         sv->prevRelDanger[i] = 0.0;
     }
+    sv->sumDanger = 0.0;
 
     strcpy(sv->prevlcdMsg, "");
     strcpy(sv->lcdMsg, "");
@@ -227,7 +228,7 @@ void init_sensors(SharedVariable* sv) {
     softPwmWrite(PIN_SMD_BLU, 0);
 
     int fd;
-    if ((fd = serialOpen ("/dev/ttyACM0", 115200)) < 0)
+    if ((fd = serialOpen ("/dev/ttyACM0", 9600)) < 0)
     {
         printf("no usb connection to arduino\n");
         sv->bProgramExit = 1;
@@ -270,23 +271,23 @@ void makelcdMsg(SharedVariable* sv, char* beginning, char* middle, double num, d
         }
         sv->printState = FREE;
     }
-    //if (sv->printState == PTUNING || sv->printState == PWARN) {
-    //    strcpy(sv->lcdMsg, "-");
-    //    strcat(sv->lcdMsg, beginning);
-    //} else {
-    strcpy(sv->lcdMsg, beginning);
-    //}
+    if (sv->printState == PTUNING || sv->printState == PWARN) {
+        strcpy(sv->lcdMsg, "-");
+        strcat(sv->lcdMsg, beginning);
+    } else {
+        strcpy(sv->lcdMsg, beginning);
+    }
     strcat(sv->lcdMsg, middle);
     strcat(sv->lcdMsg, " ");
     char str[17];
     snprintf(str, sizeof(str), "%.2f", num);
     strcat(sv->lcdMsg, str);
-    /*if (sv->printState == PTUNING || sv->printState == PWARN) {
+    if (sv->printState == PTUNING || sv->printState == PWARN) {
         char str2[17];
         snprintf(str2, sizeof(str2), "%.2f", num2);
         strcat(sv->lcdMsg, "_");
         strcat(sv->lcdMsg, str2);
-    }*/
+    }
 }
 
 void body_button(SharedVariable* sv) {
@@ -298,6 +299,7 @@ void body_button(SharedVariable* sv) {
                 // tuning mode!
                 if (sv->tuning == FALSE) {
                     sv->tuning = TRUE;
+                    tuneOn(sv);
                 } else {
                     sv->tuningIndex = (sv->tuningIndex + 1) % (NUMINPUTS * NUMVALUES);
                 }
@@ -321,6 +323,7 @@ void body_button(SharedVariable* sv) {
         if (sv->dangerCooldown > 0 && millis() - sv->dangerCooldown >= DANGERCOOLDOWN_MAX && sv->tuning == FALSE) {
             sv->dangerCooldown = 0;
             sv->safety = SAFE;
+            alarmOff(sv);
             strcpy(sv->lcdMsg, "");
         }
     }
@@ -372,6 +375,7 @@ void body_encoder(SharedVariable* sv) {
 
     if (millis() - sv->lastTune >= TUNINGDEBOUNCE) {
         sv->tuning = FALSE;
+        tuneOff(sv);
         strcpy(sv->lcdMsg, "");
     }
 }
@@ -476,8 +480,18 @@ void body_temphumid(SharedVariable* sv) {
 
     //printf("HUMIDITY: %f\n", humid);
     //printf("TEMP: %f\n", temp);
+    if (sv->relDanger[TEMP] > sv->relDanger[HUMID]) {
+        sv->sumDanger -= sv->relDanger[TEMP];
+    } else {
+        sv->sumDanger -= sv->relDanger[HUMID];
+    }
     sv->relDanger[TEMP] = fabs(temp - sv->stable[TEMP]) / (sv->info[TEMP][HIGH] - sv->info[TEMP][LOW]) * 2;
     sv->relDanger[HUMID] = fabs(humid - sv->stable[HUMID]) / (sv->info[HUMID][HIGH] - sv->info[HUMID][LOW]) * 2;
+    if (sv->relDanger[TEMP] > sv->relDanger[HUMID]) {
+        sv->sumDanger += sv->relDanger[TEMP];
+    } else {
+        sv->sumDanger += sv->relDanger[HUMID];
+    }
 
     if (sv->tuning == TRUE) {
         return;
@@ -485,6 +499,7 @@ void body_temphumid(SharedVariable* sv) {
     if (temp < sv->info[TEMP][LOW] || temp > sv->info[TEMP][HIGH]) {
         if (sv->safety == SAFE) {
             sv->lastDanger = millis();
+            alarmOn(sv);
             makelcdMsg(sv, "!!!", names[TEMP], temp, 0);
         }
         sv->safety = DANGER;
@@ -492,6 +507,7 @@ void body_temphumid(SharedVariable* sv) {
     else if (humid < sv->info[HUMID][LOW] || humid > sv->info[HUMID][HIGH]) {
         if (sv->safety == SAFE) {
             sv->lastDanger = millis();
+            alarmOn(sv);
             makelcdMsg(sv, "!!!", names[HUMID], humid, 0);
         }
         sv->safety = DANGER;
@@ -524,13 +540,16 @@ void body_air(SharedVariable* sv) {
     } else {
         //printf("AIR QUALITY %f\n", air);
         sv->dataS[AIR] = air;
+        sv->sumDanger -= sv->relDanger[AIR];
         sv->relDanger[AIR] = fabs(air - sv->stable[AIR]) / (sv->info[AIR][HIGH] - sv->info[AIR][LOW]) * 2;
+        sv->sumDanger += sv->relDanger[AIR];
         if (sv->tuning == TRUE) {
             return;
         }
         if (air < sv->info[AIR][LOW] || air > sv->info[AIR][HIGH]) {
             if (sv->safety == SAFE) {
                 sv->lastDanger = millis();
+                alarmOn(sv);
                 makelcdMsg(sv, "!!!", names[AIR], air, 0);
             }
             sv->safety = DANGER;
@@ -585,10 +604,13 @@ void body_accel(SharedVariable* sv) {
         sv->lastAccel = millis();
     } else if (millis() - sv->lastAccel >= ACCELPERIOD) {
         sv->dataS[ACCEL] = sv->accelSum;
+        sv->sumDanger -= sv->relDanger[ACCEL];
         sv->relDanger[ACCEL] = fabs(sv->accelSum - sv->stable[ACCEL]) / (sv->info[ACCEL][HIGH] - sv->info[ACCEL][LOW]) * 2;
+        sv->sumDanger += sv->relDanger[ACCEL];
         if (sv->accelSum < sv->info[ACCEL][LOW] || sv->accelSum > sv->info[ACCEL][HIGH]) {
             if (sv->safety == SAFE) {
                 sv->lastDanger = millis();
+                alarmOn(sv);
                 makelcdMsg(sv, "!!!", names[ACCEL], sv->accelSum, 0);
             }
             sv->safety = DANGER;
@@ -637,7 +659,9 @@ void body_camera(SharedVariable* sv) {
                 sv->faceSum += eye_ratio;
                 sv->faceIndex = (sv->faceIndex + 1) % FACENUM;
                 double faceAvg = sv->faceSum / FACENUM;
+                sv->sumDanger -= sv->relDanger[FACE];
                 sv->relDanger[FACE] = fabs(faceAvg - sv->stable[FACE]) / (sv->info[FACE][HIGH] - sv->info[FACE][LOW]) * 2;
+                sv->sumDanger += sv->relDanger[FACE];
                 sv->dataS[FACE] = faceAvg;
                 if (sv->tuning == TRUE) {
                     //return;
@@ -645,6 +669,7 @@ void body_camera(SharedVariable* sv) {
                 else if (faceAvg < sv->info[FACE][LOW] || faceAvg > sv->info[FACE][HIGH]) {
                     if (sv->safety == SAFE) {
                         sv->lastDanger = millis();
+                        alarmOn(sv);
                         makelcdMsg(sv, "!!!", names[FACE], faceAvg, 0);
                     }
                     sv->safety = DANGER;
@@ -654,6 +679,7 @@ void body_camera(SharedVariable* sv) {
                 }
             } else {
                 double faceAvg = sv->faceSum / FACENUM;
+                sv->dataS[FACE] = faceAvg;
 
                 if (sv->tuning == TRUE) {
                     //return;
@@ -661,6 +687,7 @@ void body_camera(SharedVariable* sv) {
                 else if (faceAvg < sv->info[FACE][LOW] || faceAvg > sv->info[FACE][HIGH]) {
                     if (sv->safety == SAFE) {
                         sv->lastDanger = millis();
+                        alarmOn(sv);
                         makelcdMsg(sv, "!!!", names[FACE], faceAvg, 0);
                     }
                     sv->safety = DANGER;

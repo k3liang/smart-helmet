@@ -86,6 +86,8 @@
 #define OFF_ALARM_UTIL 0.25 
 #define DISPLAY_UTIL 2.0
 
+#define LARGEWAIT 100
+
 #define PIN_BUTTON 0
 #define PIN_ROTARY_CLK 5
 #define PIN_ROTARY_DT 6
@@ -143,9 +145,9 @@ typedef struct shared_variable {
     //double slackUtil;
     //double utils[NUMSENSORS];
     double sensorUtil;
-    double displayUtil;
-    double tuneUtil;
-    double alarmUtil;
+    double sumDanger;
+
+    int camHigh;
 } SharedVariable;
 
 int init_boundaries(SharedVariable* sv);

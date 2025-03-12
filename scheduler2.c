@@ -7,16 +7,25 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/stat.h>
+#include "governor.h"
 
 void (*body[NUMSENSORS]) (SharedVariable*) = {body_button, body_encoder,
     body_twocolor, body_aled, body_buzzer, body_temphumid, body_air,
    body_accel, body_camera, body_lcd};
 
 static unsigned long long execTimes[] = { // microseconds
-    15, 5, 5, 5, 5, 220000, 5000, 40000, 60000, 5
+    15, 5, 5, 5, 5, 220000, 15000, 55000, 60000, 60
 };
 
+static unsigned long long camHighFreqTime = 30000; //microseconds
+
 static int queue[NUMSENSORS];
+
+static double displayUtil = DISPLAY_UTIL * MAX_UTIL / NUMSENSORS;
+static double tuneUtilOff = OFF_TUNE_UTIL * MAX_UTIL / NUMSENSORS;
+static double tuneUtilOn = ON_TUNE_UTIL * MAX_UTIL / NUMSENSORS;
+static double alarmUtilOff = OFF_ALARM_UTIL * MAX_UTIL / NUMSENSORS;
+static double alarmUtilOn = ON_ALARM_UTIL * MAX_UTIL / NUMSENSORS;
 
 unsigned long long get_current_time_us() {
     struct timeval tv;
@@ -45,11 +54,7 @@ void learn_exectimes(SharedVariable* sv) {
         sv->slackUtil -= sv->utils[i];
     }
     */
-    
-    sv->displayUtil = DISPLAY_UTIL * MAX_UTIL / NUMSENSORS;
-    sv->tuneUtil = OFF_TUNE_UTIL * MAX_UTIL / NUMSENSORS;
-    sv->alarmUtil = OFF_ALARM_UTIL * MAX_UTIL / NUMSENSORS;
-    sv->sensorUtil = MAX_UTIL - sv->displayUtil - sv->tuneUtil - sv->alarmUtil;
+    sv->sensorUtil = MAX_UTIL - displayUtil - tuneUtilOff - alarmUtilOff;
 
     sv->deadlines[ILCD] = (unsigned long long)(execTimes[ILCD] * NUMSENSORS * NUMDISPLAY / (DISPLAY_UTIL * MAX_UTIL));
     sv->deadlines[ISMD] = (unsigned long long)(execTimes[ISMD] * NUMSENSORS * NUMDISPLAY / (DISPLAY_UTIL * MAX_UTIL));
@@ -71,14 +76,32 @@ void learn_exectimes(SharedVariable* sv) {
         sv->alive[i] = 0;
         sv->nextArrive[i] = currTime + sv->deadlines[i];
     }
+
+    sv->camHigh = FALSE;
 }
 
 void tuneOn(SharedVariable *sv) {
-
+    sv->sensorUtil -= tuneUtilOn - tuneUtilOff;
+    sv->deadlines[IBUTTON] = (unsigned long long)(execTimes[IBUTTON] * NUMTUNE / tuneUtilOn);
+    sv->deadlines[IENCODER] = (unsigned long long)(execTimes[IENCODER] * NUMTUNE / tuneUtilOn);
 }
 
 void tuneOff(SharedVariable *sv) {
+    sv->sensorUtil += tuneUtilOn - tuneUtilOff;
+    sv->deadlines[IBUTTON] = (unsigned long long)(execTimes[IBUTTON] * NUMTUNE / tuneUtilOff);
+    sv->deadlines[IENCODER] = (unsigned long long)(execTimes[IENCODER] * NUMTUNE / tuneUtilOff);
+}
 
+void alarmOn(SharedVariable *sv) {
+    sv->sensorUtil -= alarmUtilOn - alarmUtilOff;
+    sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMALARM / alarmUtilOn);
+    sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMALARM / alarmUtilOn);
+}
+
+void alarmOff(SharedVariable *sv) {
+    sv->sensorUtil += alarmUtilOn - alarmUtilOff;
+    sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMALARM / alarmUtilOff);
+    sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMALARM / alarmUtilOff);
 }
 
 void enqueue(SharedVariable* sv, int p) {
@@ -108,12 +131,41 @@ int dequeue() {
     return answer;
 }
 
+void updateDeadline(SharedVariable* sv, int i) {
+    if (i < ITEMP || i > ICAM) {
+        return;
+    }
+    int newIndex = i - ITEMP + 1;
+    if (sv->sumDanger <= 0) {
+        sv->deadlines[i] = execTimes[i] * NUMREAD / sv->sensorUtil;
+        return;
+    }
+    double danger = sv->relDanger[newIndex];
+    if (newIndex == 1) {
+        if (sv->relDanger[0] > danger) {
+            danger = sv->relDanger[0];
+        }
+    }
+
+    if (danger <= 0) {
+        sv->deadlines[i] = execTimes[i] * (sv->sumDanger + 0.1) / (0.1 * sv->sensorUtil);
+        return;
+    }
+    if (i == ICAM && danger >= RELDANGERTHRES) {
+        sv->deadlines[i] = camHighFreqTime * sv->sumDanger / (danger * sv->sensorUtil);
+        sv->camHigh = TRUE;
+        return;
+    }
+    sv->deadlines[i] = execTimes[i] * sv->sumDanger / (danger * sv->sensorUtil);
+}
+
 void run_task(SharedVariable* sv) {
     unsigned long long currTime = get_current_time_us();
     int i;
     for (i = 0; i < NUMSENSORS; i++) {
         if (sv->nextArrive[i] <= currTime) {
             if (sv->alive[i] == 0) {
+                updateDeadline(sv, i);
                 sv->alive[i] = 1;
                 sv->currDeadline[i] = sv->nextArrive[i] + sv->deadlines[i];
                 enqueue(sv, i);
@@ -125,6 +177,14 @@ void run_task(SharedVariable* sv) {
     }
     if (queue[0] != -1) {
         int p = dequeue();
+        if (p == ICAM && sv->camHigh == TRUE) {
+            set_by_max_freq();
+            (*body[p]) (sv);
+            sv->alive[p] = 0;
+            sv->camHigh = FALSE;
+            set_by_min_freq();
+            return;
+        }
         (*body[p]) (sv);
         sv->alive[p] = 0;
         //printf("%llu took this much microseconds for run task %d \n", get_current_time_us() - currTime, p);
