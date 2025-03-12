@@ -1,4 +1,5 @@
 #include "sensor_interaction.h"
+#include "scheduler2.h"
 #include <stdio.h>
 #include <wiringPi.h>
 #include <stdlib.h>
@@ -12,6 +13,16 @@
 void (*body[NUMSENSORS]) (SharedVariable*) = {body_button, body_encoder,
     body_twocolor, body_aled, body_buzzer, body_temphumid, body_air,
    body_accel, body_camera, body_lcd};
+
+static char* funcNames[] = {"button", "encoder", "twocolor", "aled",
+"buzzer", "temphumid", "air", "accel", "camera", "lcd"};
+static unsigned long long times[] = {0,0,0,0,0,0,0,0,0,0};
+static unsigned long long prevTime = 0;
+static unsigned long long sum = 0;
+
+static unsigned long long idleTime = 0;
+static unsigned long long lowTime = 0;
+static unsigned long long highTime = 0;
 
 static unsigned long long execTimes[] = { // microseconds
     15, 5, 5, 5, 5, 220000, 15000, 55000, 60000, 60
@@ -78,6 +89,7 @@ void learn_exectimes(SharedVariable* sv) {
     }
 
     sv->camHigh = FALSE;
+    prevTime = get_current_time_us();
 }
 
 void tuneOn(SharedVariable *sv) {
@@ -156,7 +168,7 @@ void updateDeadline(SharedVariable* sv, int i) {
         sv->camHigh = TRUE;
         return;
     }
-    sv->deadlines[i] = execTimes[i] * sv->sumDanger / (danger * sv->sensorUtil);
+    sv->deadlines[i] = execTimes[i] * sv->sumDanger / (danger * danger * danger * sv->sensorUtil);
 }
 
 void run_task(SharedVariable* sv) {
@@ -177,17 +189,54 @@ void run_task(SharedVariable* sv) {
     }
     if (queue[0] != -1) {
         int p = dequeue();
+        unsigned long long maxStart = 0;
+        unsigned long long maxEnd = 0;
+        if (DEBUG == 1) {
+            //printf("%s\n", funcNames[p]);
+        }
         if (p == ICAM && sv->camHigh == TRUE) {
             set_by_max_freq();
+            maxStart = get_current_time_us();
             (*body[p]) (sv);
             sv->alive[p] = 0;
             sv->camHigh = FALSE;
+            maxEnd = get_current_time_us();
+            highTime += maxEnd - maxStart;
             set_by_min_freq();
-            return;
+        } else {
+            (*body[p]) (sv);
+            sv->alive[p] = 0;
         }
-        (*body[p]) (sv);
-        sv->alive[p] = 0;
         //printf("%llu took this much microseconds for run task %d \n", get_current_time_us() - currTime, p);
+        if (DEBUG == 1) {
+            unsigned long long endTime = get_current_time_us();
+            times[p] += endTime - currTime;
+            sum += endTime - currTime;
+            lowTime += endTime - currTime;
+            if (maxStart > 0) {
+                lowTime -= maxEnd - maxStart;
+            }
+
+            if (endTime - prevTime >= DPERIOD) {
+                int k;
+                printf("------------------\n------------------\n");
+                for (k = 0; k < NUMSENSORS; k++) {
+                    printf("%s %f\n", funcNames[k], ((double)times[k]) / sum);
+                    times[k] = 0;
+                }
+                sum = 0;
+                prevTime = endTime;
+                printf("------------------\n");
+                printf("Low Freq Time: %f\n", lowTime * 1e-6);
+                printf("High Freq Time: %f\n", highTime * 1e-6);
+                //printf("Idle Time: %f\n", idleTime * 1e-6);
+                //printf("Energy consumed: %f\n", ((highTime * 2000.0) + (lowTime * 1200.0) + (idleTime * 50.0)) * 1e-9);
+                printf("Energy consumed: %f\n", ((highTime * 2000.0) + (lowTime * 1200.0)) * 1e-9);
+            }
+        }
+    } else {
+        //idleTime += get_current_time_us() - currTime;
+        lowTime += get_current_time_us() - currTime;
     }
     
 }

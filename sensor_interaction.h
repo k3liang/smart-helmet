@@ -14,6 +14,10 @@
 #define WRITE(pin, x) digitalWrite(pin, x)
 
 // Constants
+#define DEBUG 1
+#define DEBUG2 0
+#define DPERIOD 5000000
+
 #define LOW 0
 #define HIGH 1
 
@@ -33,23 +37,7 @@
 #define ACCEL 3
 #define FACE 4
 #define NUMINPUTS 5
-
 #define NUMSENSORS 10
-#define NUMDISPLAY 2
-#define NUMREAD 4
-#define NUMTUNE 2
-#define NUMALARM 2
-//body_button, body_encoder,body_twocolor, body_aled, body_buzzer, body_temphumid, body_air, body_accel, body_camera, body_lcd
-#define IBUTTON 0
-#define IENCODER 1
-#define ISMD 2
-#define IALED 3
-#define IBUZZER 4
-#define ITEMP 5
-#define IAIR 6
-#define IACCEL 7
-#define ICAM 8
-#define ILCD 9
 
 #define SENSORFILE "sensor_values.txt"
 
@@ -78,13 +66,6 @@
 #define FREE -1
 
 #define WARNWAIT 5000
-
-#define MAX_UTIL 0.9
-#define ON_TUNE_UTIL 4.0
-#define OFF_TUNE_UTIL 0.25
-#define ON_ALARM_UTIL 1.0
-#define OFF_ALARM_UTIL 0.25 
-#define DISPLAY_UTIL 2.0
 
 #define LARGEWAIT 100
 

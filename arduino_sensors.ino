@@ -79,7 +79,8 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
+  Serial.begin(9600);
 
   delay(3000);
 

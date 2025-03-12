@@ -481,16 +481,22 @@ void body_temphumid(SharedVariable* sv) {
     //printf("HUMIDITY: %f\n", humid);
     //printf("TEMP: %f\n", temp);
     if (sv->relDanger[TEMP] > sv->relDanger[HUMID]) {
-        sv->sumDanger -= sv->relDanger[TEMP];
+        sv->sumDanger -= sv->relDanger[TEMP]*sv->relDanger[TEMP]*sv->relDanger[TEMP];
     } else {
-        sv->sumDanger -= sv->relDanger[HUMID];
+        sv->sumDanger -= sv->relDanger[HUMID]*sv->relDanger[HUMID]*sv->relDanger[HUMID];
     }
     sv->relDanger[TEMP] = fabs(temp - sv->stable[TEMP]) / (sv->info[TEMP][HIGH] - sv->info[TEMP][LOW]) * 2;
     sv->relDanger[HUMID] = fabs(humid - sv->stable[HUMID]) / (sv->info[HUMID][HIGH] - sv->info[HUMID][LOW]) * 2;
     if (sv->relDanger[TEMP] > sv->relDanger[HUMID]) {
-        sv->sumDanger += sv->relDanger[TEMP];
+        sv->sumDanger += sv->relDanger[TEMP]*sv->relDanger[TEMP]*sv->relDanger[TEMP];
+        if (DEBUG == 1 && DEBUG2 == 1) {
+            makelcdMsg(sv, "", names[TEMP], temp, 0);
+        }
     } else {
-        sv->sumDanger += sv->relDanger[HUMID];
+        sv->sumDanger += sv->relDanger[HUMID]*sv->relDanger[HUMID]*sv->relDanger[HUMID];
+        if (DEBUG == 1 && DEBUG2 == 1) {
+            makelcdMsg(sv, "", names[HUMID], humid, 0);
+        }
     }
 
     if (sv->tuning == TRUE) {
@@ -540,9 +546,12 @@ void body_air(SharedVariable* sv) {
     } else {
         //printf("AIR QUALITY %f\n", air);
         sv->dataS[AIR] = air;
-        sv->sumDanger -= sv->relDanger[AIR];
+        sv->sumDanger -= sv->relDanger[AIR]*sv->relDanger[AIR]*sv->relDanger[AIR];
         sv->relDanger[AIR] = fabs(air - sv->stable[AIR]) / (sv->info[AIR][HIGH] - sv->info[AIR][LOW]) * 2;
-        sv->sumDanger += sv->relDanger[AIR];
+        sv->sumDanger += sv->relDanger[AIR]*sv->relDanger[AIR]*sv->relDanger[AIR];
+        if (DEBUG == 1 && DEBUG2 == 1) {
+            makelcdMsg(sv, "", names[AIR], air, 0);
+        }
         if (sv->tuning == TRUE) {
             return;
         }
@@ -599,14 +608,17 @@ void body_accel(SharedVariable* sv) {
     }
 
     sv->accelSum += aX + aY + aZ;
+    if (DEBUG == 1 && DEBUG2 == 1) {
+        makelcdMsg(sv, "", names[ACCEL], sv->accelSum, 0);
+    }
 
     if (sv->lastAccel == 0) {
         sv->lastAccel = millis();
     } else if (millis() - sv->lastAccel >= ACCELPERIOD) {
         sv->dataS[ACCEL] = sv->accelSum;
-        sv->sumDanger -= sv->relDanger[ACCEL];
+        sv->sumDanger -= sv->relDanger[ACCEL]*sv->relDanger[ACCEL]*sv->relDanger[ACCEL];
         sv->relDanger[ACCEL] = fabs(sv->accelSum - sv->stable[ACCEL]) / (sv->info[ACCEL][HIGH] - sv->info[ACCEL][LOW]) * 2;
-        sv->sumDanger += sv->relDanger[ACCEL];
+        sv->sumDanger += sv->relDanger[ACCEL]*sv->relDanger[ACCEL]*sv->relDanger[ACCEL];
         if (sv->accelSum < sv->info[ACCEL][LOW] || sv->accelSum > sv->info[ACCEL][HIGH]) {
             if (sv->safety == SAFE) {
                 sv->lastDanger = millis();
@@ -659,10 +671,13 @@ void body_camera(SharedVariable* sv) {
                 sv->faceSum += eye_ratio;
                 sv->faceIndex = (sv->faceIndex + 1) % FACENUM;
                 double faceAvg = sv->faceSum / FACENUM;
-                sv->sumDanger -= sv->relDanger[FACE];
+                sv->sumDanger -= sv->relDanger[FACE]*sv->relDanger[FACE]*sv->relDanger[FACE];
                 sv->relDanger[FACE] = fabs(faceAvg - sv->stable[FACE]) / (sv->info[FACE][HIGH] - sv->info[FACE][LOW]) * 2;
-                sv->sumDanger += sv->relDanger[FACE];
+                sv->sumDanger += sv->relDanger[FACE]*sv->relDanger[FACE]*sv->relDanger[FACE];
                 sv->dataS[FACE] = faceAvg;
+                if (DEBUG == 1 && DEBUG2 == 1) {
+                    makelcdMsg(sv, "", names[FACE], faceAvg, 0);
+                }
                 if (sv->tuning == TRUE) {
                     //return;
                 }
@@ -681,6 +696,9 @@ void body_camera(SharedVariable* sv) {
                 double faceAvg = sv->faceSum / FACENUM;
                 sv->dataS[FACE] = faceAvg;
 
+                if (DEBUG == 1 && DEBUG2 == 1) {
+                    makelcdMsg(sv, "", names[FACE], faceAvg, 0);
+                }
                 if (sv->tuning == TRUE) {
                     //return;
                 }
