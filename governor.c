@@ -1,7 +1,7 @@
-// Energy-efficient real time scheduler
-// Important! DO NOT MODIFY this file. You will not submit this file.
-// This file is provided for your implementation of the program procedure.
-// For more details, please see the instructions in the class website.
+/**
+ * IMPORTANT, this file and governor.h is copied from Assignment 2
+ * in order to help us change CPU frequency.
+ */
 
 #include "governor.h"
 #include <stdio.h>

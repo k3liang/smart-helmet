@@ -98,9 +98,9 @@ void setup() {
   sensor.setThrottle(false);
   
   //  set calibration values
-  sensor.axe = 0.160;
-  sensor.aye = 0.021;
-  sensor.aze = -1.007;
+  sensor.axe = 0.181;
+  sensor.aye = 0.024;
+  sensor.aze = -1.003;
 
   pmSerial.begin(9600);
   if (! aqi.begin_UART(&pmSerial)) { // connect to the sensor over software serial 

@@ -16,6 +16,7 @@
 // Constants
 #define DEBUG 1
 #define DEBUG2 0
+#define SCHEDON 1
 #define DPERIOD 5000000
 
 #define LOW 0
@@ -48,11 +49,11 @@
 #define DANGERCOOLDOWN_MAX 10000
 #define DANGERTOCRITICAL 10000
 
-#define STEPFACTOR 100
+#define STEPFACTOR 30
 
 #define FACENUM 5
 
-#define ACCELPERIOD 30000
+#define ACCELPERIOD 10000
 #define ACCELNOISE 0.03
 
 #define CHANGETHRES 0.03

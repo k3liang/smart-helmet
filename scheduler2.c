@@ -46,25 +46,31 @@ unsigned long long get_current_time_us() {
 }
 
 void learn_exectimes(SharedVariable* sv) {
-    /*int i;
-    unsigned long long currTime = get_current_time_us(); 
-    for (i = 0; i < NUMSENSORS; i++) {
-        queue[i] = -1;
-        sv->alive[i] = 0;
-        sv->deadlines[i] = execTimes[i] * NUMSENSORS * 4;
-        sv->nextArrive[i] = currTime + sv->deadlines[i];
-    }
-
-    sv->deadlines[IAIR] = 1000000; */
-    // air quality sensor needs to be really delayed between polls
-
     /*
-    sv->slackUtil = MAXUTIL;
-    for (i = 0; i < NUMSENSORS; i++) {
-        sv->utils[i] = (double)(execTimes[i]) / (double)(sv->deadlines[i]);
-        sv->slackUtil -= sv->utils[i];
-    }
     */
+    int i;
+    if (SCHEDON == 0) {
+        unsigned long long currTime = get_current_time_us(); 
+        for (i = 0; i < NUMSENSORS; i++) {
+            queue[i] = -1;
+            sv->alive[i] = 0;
+            sv->deadlines[i] = execTimes[i] * NUMSENSORS * 2;
+            sv->nextArrive[i] = currTime + sv->deadlines[i];
+        }
+
+        sv->deadlines[IAIR] = 1000000;
+        // air quality sensor needs to be really delayed between polls
+
+        /*
+        sv->slackUtil = MAXUTIL;
+        for (i = 0; i < NUMSENSORS; i++) {
+            sv->utils[i] = (double)(execTimes[i]) / (double)(sv->deadlines[i]);
+            sv->slackUtil -= sv->utils[i];
+        }
+        */
+        return;
+    }
+
     sv->sensorUtil = MAX_UTIL - displayUtil - tuneUtilOff - alarmUtilOff;
 
     sv->deadlines[ILCD] = (unsigned long long)(execTimes[ILCD] * NUMSENSORS * NUMDISPLAY / (DISPLAY_UTIL * MAX_UTIL));
@@ -76,7 +82,6 @@ void learn_exectimes(SharedVariable* sv) {
     sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMSENSORS * NUMALARM / (OFF_ALARM_UTIL * MAX_UTIL));
     sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMSENSORS * NUMALARM / (OFF_ALARM_UTIL * MAX_UTIL));
 
-    int i;
     for (i = ITEMP; i <= ICAM; i++) {
         sv->deadlines[i] = (unsigned long long)(execTimes[i] * NUMREAD / sv->sensorUtil);
     }
@@ -93,24 +98,28 @@ void learn_exectimes(SharedVariable* sv) {
 }
 
 void tuneOn(SharedVariable *sv) {
+    if (SCHEDON == 0) {return;}
     sv->sensorUtil -= tuneUtilOn - tuneUtilOff;
     sv->deadlines[IBUTTON] = (unsigned long long)(execTimes[IBUTTON] * NUMTUNE / tuneUtilOn);
     sv->deadlines[IENCODER] = (unsigned long long)(execTimes[IENCODER] * NUMTUNE / tuneUtilOn);
 }
 
 void tuneOff(SharedVariable *sv) {
+    if (SCHEDON == 0) {return;}
     sv->sensorUtil += tuneUtilOn - tuneUtilOff;
     sv->deadlines[IBUTTON] = (unsigned long long)(execTimes[IBUTTON] * NUMTUNE / tuneUtilOff);
     sv->deadlines[IENCODER] = (unsigned long long)(execTimes[IENCODER] * NUMTUNE / tuneUtilOff);
 }
 
 void alarmOn(SharedVariable *sv) {
+    if (SCHEDON == 0) {return;}
     sv->sensorUtil -= alarmUtilOn - alarmUtilOff;
     sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMALARM / alarmUtilOn);
     sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMALARM / alarmUtilOn);
 }
 
 void alarmOff(SharedVariable *sv) {
+    if (SCHEDON == 0) {return;}
     sv->sensorUtil += alarmUtilOn - alarmUtilOff;
     sv->deadlines[IALED] = (unsigned long long)(execTimes[IALED] * NUMALARM / alarmUtilOff);
     sv->deadlines[IBUZZER] = (unsigned long long)(execTimes[IBUZZER] * NUMALARM / alarmUtilOff);
@@ -144,6 +153,7 @@ int dequeue() {
 }
 
 void updateDeadline(SharedVariable* sv, int i) {
+    if (SCHEDON == 0) {return;}
     if (i < ITEMP || i > ICAM) {
         return;
     }
@@ -194,7 +204,7 @@ void run_task(SharedVariable* sv) {
         if (DEBUG == 1) {
             //printf("%s\n", funcNames[p]);
         }
-        if (p == ICAM && sv->camHigh == TRUE) {
+        if (p == ICAM && sv->camHigh == TRUE && SCHEDON == 1) {
             set_by_max_freq();
             maxStart = get_current_time_us();
             (*body[p]) (sv);
